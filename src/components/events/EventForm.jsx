@@ -1,47 +1,114 @@
 import { useEffect, useRef, useState } from "react";
 import ApproversSection from "./ApproversSection";
+import { getPlaces, getResponsiblePerson } from "../../api/eventService";
 
 function EventForm({ values, setValues, file, setFile, roleMap, onSubmit }) {
 
   const [places, setPlaces] = useState([]);
+  const [loadingApprovers, setLoadingApprovers] = useState(false);
   const fileInputRef = useRef(null);
 
-  // 📍 LOAD PLACES
+  // =========================
+  // LOAD PLACES
+  // =========================
   useEffect(() => {
-    const fetchPlaces = async () => {
+    const loadPlaces = async () => {
       try {
-        const res = await fetch("http://localhost:8081/api/places", {
-          credentials: "include",
-        });
-
-        const data = await res.json();
-        setPlaces(data || []);
-
+        const res = await getPlaces();
+        setPlaces(res?.data || res || []);
       } catch (err) {
-        console.error("Places error:", err);
+        console.error("Places load error:", err);
       }
     };
 
-    fetchPlaces();
+    loadPlaces();
   }, []);
 
+  // =========================
   // RESET FILE INPUT
+  // =========================
   useEffect(() => {
     if (!values.eventName && fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }, [values.eventName]);
-
-  // INPUT HANDLER
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value } = e.target;
 
-    setValues({
-      ...values,
-      [name]: name === "eventPlace" ? (value || null) : value,
-    });
+    // =========================
+    // NORMAL FIELDS
+    // =========================
+    if (name !== "eventPlace") {
+      setValues((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+      return;
+    }
+
+    // =========================
+    // PLACE FIELD
+    // =========================
+    const placeValue = value || null;
+
+    // 🔥 CASE 1: NO LOCATION SELECTED → CLEAR PIPELINE
+    if (!placeValue) {
+      setValues((prev) => ({
+        ...prev,
+        eventPlace: null,
+        approvers: [], // ✅ CLEAR APPROVAL PIPELINE
+      }));
+      return;
+    }
+
+    // =========================
+    // UPDATE PLACE FIRST
+    // =========================
+    setValues((prev) => ({
+      ...prev,
+      eventPlace: placeValue,
+    }));
+
+    // =========================
+    // LOAD RESPONSIBLE PERSON
+    // =========================
+    setLoadingApprovers(true);
+
+    try {
+      const data = await getResponsiblePerson(placeValue);
+
+      if (data?.responsiblePersonName) {
+
+        setValues((prev) => {
+          const existing = prev.approvers || [];
+
+          return {
+            ...prev,
+            approvers: [
+              {
+                order: 1,
+                role: data.responsiblePersonName,
+                name: data.responsiblePersonRegNumber,
+              },
+              ...existing.map((a) => ({
+                ...a,
+                order: a.order + 1,
+              })),
+            ],
+          };
+        });
+      }
+
+    } catch (err) {
+      console.error("Responsible person error:", err);
+    } finally {
+      setLoadingApprovers(false);
+    }
   };
 
+  // =========================
+  // SUBMIT
+  // =========================
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(values);
@@ -84,7 +151,6 @@ function EventForm({ values, setValues, file, setFile, roleMap, onSubmit }) {
           required
         />
 
-        {/* END TIME */}
         <input
           type="time"
           name="eventEndTime"
@@ -94,14 +160,13 @@ function EventForm({ values, setValues, file, setFile, roleMap, onSubmit }) {
           required
         />
 
-        {/* PLACE DROPDOWN */}
+        {/* PLACE SELECT (NULL SAFE) */}
         <select
           name="eventPlace"
           value={values.eventPlace || ""}
           onChange={handleChange}
           className="p-3 bg-[#1e293b] rounded"
         >
-          {/* 🔥 IMPORTANT: NULL OPTION */}
           <option value="">No Location</option>
 
           {places.map((p) => (
@@ -133,6 +198,10 @@ function EventForm({ values, setValues, file, setFile, roleMap, onSubmit }) {
 
       {/* APPROVERS */}
       <div className="bg-white/5 p-4 rounded">
+        {loadingApprovers && (
+          <p className="text-blue-400">Loading approvers...</p>
+        )}
+
         <ApproversSection
           approvers={values.approvers || []}
           setValues={setValues}

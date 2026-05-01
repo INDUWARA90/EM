@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ApprovedLetterCardDetail from "../../components/events/ApprovedLetterCardDetail";
+import { getApprovedByMe } from "../../api/approvalService";
 
 function ApprovedByMePage() {
   const [letters, setLetters] = useState([]);
@@ -13,19 +14,7 @@ function ApprovedByMePage() {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "http://localhost:8081/api/letter/approved-by-me",
-        {
-          method: "GET",
-          credentials: "include"
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch approved letters");
-      }
-
-      const data = await response.json();
+      const data = await getApprovedByMe();
 
       console.log("Approved letters:", data);
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import RejectedLetterCardDetail from "../../components/events/RejectedLetterCardDetail";
+import { getRejectedByMe } from "../../api/approvalService";
 
 function RejectedByMePage() {
   const [letters, setLetters] = useState([]);
@@ -11,19 +12,7 @@ function RejectedByMePage() {
 
   const fetchRejectedLetters = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:8081/api/letter/rejected-by-me",
-        {
-          method: "GET",
-          credentials: "include"
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch rejected letters");
-      }
-
-      const data = await response.json();
+      const data = await getRejectedByMe();
 
       console.log("Rejected letters:", data);
 

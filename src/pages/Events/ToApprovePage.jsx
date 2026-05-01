@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import ApprovalLetterCard from "../../components/events/ApprovalLetterCard";
+import { getLettersToApprove, approveLetter, rejectLetter } from "../../api/approvalService";
 
 function ToApprovePage() {
   const [letters, setLetters] = useState([]);
@@ -16,15 +17,7 @@ function ToApprovePage() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:8081/api/letter/to-approve",
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
-
-      const data = await response.json();
+      const data = await getLettersToApprove();
 
       console.log("📩 RAW RESPONSE:", data);
 
@@ -58,17 +51,7 @@ function ToApprovePage() {
   // =========================
   const handleApprove = async (id) => {
     try {
-      const res = await fetch(
-        `http://localhost:8081/api/letter/${id}/approve`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );
-
-      const text = await res.text();
-
-      if (!res.ok) throw new Error(text || "Approve failed");
+      const text = await approveLetter(id);
 
       console.log("✅ APPROVED:", text);
 
@@ -96,21 +79,7 @@ function ToApprovePage() {
     if (!reason.trim()) return;
 
     try {
-      const res = await fetch(
-        `http://localhost:8081/api/letter/${selectedId}/reject`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ reason }),
-        }
-      );
-
-      const text = await res.text();
-
-      if (!res.ok) throw new Error(text || "Reject failed");
+      const text = await rejectLetter(selectedId, reason);
 
       console.log("❌ REJECTED:", text);
 

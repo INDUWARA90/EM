@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { checkApi, login } from "../../api/authService";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -10,16 +11,11 @@ function LoginPage() {
 
   const callCheckApi = async () => {
   try {
-    const res = await fetch("http://localhost:8081/api/check", {
-      method: "GET",
-      credentials: "include",
-    });
+    const res = await checkApi();
 
-    const text = await res.text();
-
-    console.log("🔎 CHECK API STATUS:", res.status);
-    console.log("✅ CHECK API SUCCESS:", res.ok);
-    console.log("📩 CHECK API RESPONSE:", text || "(empty response from backend)");
+    console.log("🔎 CHECK API STATUS:", "Success");
+    console.log("✅ CHECK API SUCCESS:", true);
+    console.log("📩 CHECK API RESPONSE:", res || "(empty response from backend)");
 
   } catch (err) {
     console.error("❌ Check API failed:", err);
@@ -30,49 +26,15 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    const form = {
-      regNumber,
-      password,
-    };
-
     try {
       // 1️⃣ LOGIN REQUEST
-      const response = await fetch(
-        "http://localhost:8081/api/auth/signin",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include", // 👈 IMPORTANT (same as your first code)
-          body: JSON.stringify(form),
-        }
-      );
-
-      // safer parsing (handles JSON + non-JSON responses)
-      const text = await response.text();
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = text;
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          typeof data === "string"
-            ? data
-            : data?.message || "Login failed"
-        );
-      }
+      const data = await login(regNumber, password);
 
       console.log("LOGIN SUCCESS:", data);
 
       // 2️⃣ STORE USER
       const userToStore = data.user || data;
 
-      localStorage.setItem("user", JSON.stringify(userToStore));
       localStorage.setItem("username", userToStore.username || "");
 
       // 3️⃣ CALL CHECK API AFTER LOGIN

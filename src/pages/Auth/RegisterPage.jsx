@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { register } from "../../api/authService";
 
 function RegisterPage() {
   const [form, setForm] = useState({
@@ -22,31 +23,14 @@ function RegisterPage() {
     e.preventDefault();
     setLoading(true);
 
-    const payload = {
-      username: form.username,
-      email: form.email,
-      password: form.password,
-      regNumber: form.regNumber,
-      role: [form.role],
-    };
-
     try {
-      const response = await fetch(
-        "http://localhost:8081/api/auth/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
+      const data = await register(
+        form.username,
+        form.email,
+        form.password,
+        form.regNumber,
+        form.role
       );
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Registration failed");
-      }
       
       alert("User registered successfully!");
 

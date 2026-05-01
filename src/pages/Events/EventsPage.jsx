@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import EventForm from "../../components/events/EventForm";
+import { getPlaces, createEvent as createEventAPI } from "../../api/eventService";
 
 function EventPage() {
 
@@ -41,17 +42,7 @@ function EventPage() {
     setPlacesError(null);
 
     try {
-      const res = await fetch("http://localhost:8081/api/places", {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || `HTTP Error ${res.status}`);
-      }
-
-      const data = await res.json();
+      const data = await getPlaces();
       setPlaces(data || []);
 
     } catch (err) {
@@ -111,21 +102,8 @@ function EventPage() {
       // =========================
       // API CALL
       // =========================
-      const response = await fetch(
-        "http://localhost:8081/api/letter/place",
-        {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        }
-      );
-
-      const text = await response.text();
+      const text = await createEventAPI(formData);
       console.log("📩 RESPONSE:", text);
-
-      if (!response.ok) {
-        throw new Error(text || "Failed to create event");
-      }
 
       alert(text || "Event created successfully!");
 

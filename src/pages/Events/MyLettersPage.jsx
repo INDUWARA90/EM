@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import LetterCard from "../../components/events/LetterCard";
+import { getMyLetters } from "../../api/eventService";
 
 function MyLettersPage() {
   const [letters, setLetters] = useState([]);
@@ -7,19 +8,7 @@ function MyLettersPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(
-          "http://localhost:8081/api/letter/my",
-          {
-            method: "GET",
-            credentials: "include", // ✅ IMPORTANT (session auth)
-          }
-        );
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch my letters");
-        }
-
-        const data = await res.json();
+        const data = await getMyLetters();
 
         const list = Array.isArray(data)
           ? data
