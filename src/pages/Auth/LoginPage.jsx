@@ -4,11 +4,27 @@ import { Link, useNavigate } from "react-router-dom";
 function LoginPage() {
   const navigate = useNavigate();
 
-  // ✅ separate state (cleaner)
   const [regNumber, setRegNumber] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
+
+  const callCheckApi = async () => {
+  try {
+    const res = await fetch("http://localhost:8081/api/check", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const text = await res.text();
+
+    console.log("🔎 CHECK API STATUS:", res.status);
+    console.log("✅ CHECK API SUCCESS:", res.ok);
+    console.log("📩 CHECK API RESPONSE:", text || "(empty response from backend)");
+
+  } catch (err) {
+    console.error("❌ Check API failed:", err);
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,6 +36,7 @@ function LoginPage() {
     };
 
     try {
+      // 1️⃣ LOGIN REQUEST
       const response = await fetch(
         "http://localhost:8081/api/auth/signin",
         {
@@ -27,10 +44,12 @@ function LoginPage() {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include", // 👈 IMPORTANT (same as your first code)
           body: JSON.stringify(form),
         }
       );
 
+      // safer parsing (handles JSON + non-JSON responses)
       const text = await response.text();
 
       let data;
@@ -47,15 +66,19 @@ function LoginPage() {
             : data?.message || "Login failed"
         );
       }
-      
-      // ✅ STORE USER IN LOCAL STORAGE
+
+      console.log("LOGIN SUCCESS:", data);
+
+      // 2️⃣ STORE USER
       const userToStore = data.user || data;
 
       localStorage.setItem("user", JSON.stringify(userToStore));
-
-      // optional: store username separately if needed
       localStorage.setItem("username", userToStore.username || "");
 
+      // 3️⃣ CALL CHECK API AFTER LOGIN
+      await callCheckApi();
+
+      // 4️⃣ REDIRECT
       navigate("/dashboard");
 
     } catch (err) {
@@ -76,7 +99,6 @@ function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* Reg Number */}
           <input
             value={regNumber}
             onChange={(e) => setRegNumber(e.target.value)}
@@ -84,7 +106,6 @@ function LoginPage() {
             className="w-full p-3 rounded bg-white/10 text-white"
           />
 
-          {/* Password */}
           <input
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -93,7 +114,6 @@ function LoginPage() {
             className="w-full p-3 rounded bg-white/10 text-white"
           />
 
-          {/* Button */}
           <button
             disabled={loading}
             className="w-full p-3 bg-blue-600 text-white rounded"

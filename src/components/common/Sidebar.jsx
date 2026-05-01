@@ -6,36 +6,69 @@ function Sidebar() {
   const location = useLocation();
   const [user, setUser] = useState(null);
 
-  // ✅ Load user from localStorage instead of API
+  // Load user from localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
 
     if (storedUser) {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
+        setUser(JSON.parse(storedUser));
       } catch (err) {
-        console.error("Invalid user in localStorage", err);
+        console.error("Invalid user data", err);
         localStorage.removeItem("user");
       }
     }
   }, []);
 
   const roles = user?.roles || [];
-  const isSecretary = roles.includes("ROLE_SECRETARY");
+
+  // ✅ Correct condition: hide for USER + SECRETARY
+  const hiddenRoles = ["ROLE_USER", "ROLE_SECRETARY"];
+  const showApprovalMenu = !roles.some((role) =>
+    hiddenRoles.includes(role)
+  );
 
   const menuItems = [
-    { name: "Dashboard", path: "/dashboard", icon: <LayoutDashboard size={20} /> },
-    { name: "Events", path: "/dashboard/events", icon: <Ticket size={20} /> },
-    { name: "Calendar", path: "/dashboard/calendar", icon: <Calendar size={20} /> },
-    { name: "Letter Box", path: "/dashboard/my-letters", icon: <Calendar size={20} /> },
+    {
+      name: "Dashboard",
+      path: "/dashboard",
+      icon: <LayoutDashboard size={20} />,
+    },
+    {
+      name: "Events",
+      path: "/dashboard/events",
+      icon: <Ticket size={20} />,
+    },
+    {
+      name: "Calendar",
+      path: "/dashboard/calendar",
+      icon: <Calendar size={20} />,
+    },
+    {
+      name: "Letter Box",
+      path: "/dashboard/my-letters",
+      icon: <Calendar size={20} />,
+    },
   ];
 
-  if (!isSecretary) {
+  // ✅ Add conditional menu
+  if (showApprovalMenu) {
     menuItems.push(
-      { name: "To Be Approved", path: "/dashboard/to-approve", icon: <Calendar size={20} /> },
-      { name: "Approved By Me", path: "/dashboard/approved-by-me", icon: <Calendar size={20} /> },
-      { name: "Rejected By Me", path: "/dashboard/rejected-by-me", icon: <Calendar size={20} /> }
+      {
+        name: "To Be Approved",
+        path: "/dashboard/to-approve",
+        icon: <Calendar size={20} />,
+      },
+      {
+        name: "Approved By Me",
+        path: "/dashboard/approved-by-me",
+        icon: <Calendar size={20} />,
+      },
+      {
+        name: "Rejected By Me",
+        path: "/dashboard/rejected-by-me",
+        icon: <Calendar size={20} />,
+      }
     );
   }
 
@@ -64,7 +97,9 @@ function Sidebar() {
             >
               <div className="flex items-center gap-3">
                 {item.icon}
-                <span className="font-semibold text-sm">{item.name}</span>
+                <span className="font-semibold text-sm">
+                  {item.name}
+                </span>
               </div>
 
               {isActive && <ChevronRight size={14} />}

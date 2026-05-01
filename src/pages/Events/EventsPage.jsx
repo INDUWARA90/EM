@@ -1,17 +1,22 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import EventForm from "../../components/events/EventForm";
 
 function EventPage() {
+
   const roleMap = {
     Lecturer: "LC2001",
     Dean: "DID100",
     Head: "HD3001",
   };
 
+  // =========================
+  // INITIAL STATE
+  // =========================
   const getInitialState = () => ({
     eventName: "",
     eventDate: "",
     eventTime: "",
+    eventEndTime: "",   // ✅ NEW FIELD ADDED
     eventPlace: "",
     description: "",
     approvers: [],
@@ -21,53 +26,116 @@ function EventPage() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // ✅ SUBMIT WITH FETCH
+  // =========================
+  // FETCH PLACES STATE
+  // =========================
+  const [places, setPlaces] = useState([]);
+  const [placesLoading, setPlacesLoading] = useState(false);
+  const [placesError, setPlacesError] = useState(null);
+
+  // =========================
+  // LOAD PLACES
+  // =========================
+  const fetchPlaces = async () => {
+    setPlacesLoading(true);
+    setPlacesError(null);
+
+    try {
+      const res = await fetch("http://localhost:8081/api/places", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || `HTTP Error ${res.status}`);
+      }
+
+      const data = await res.json();
+      setPlaces(data || []);
+
+    } catch (err) {
+      console.error("Places error:", err);
+      setPlacesError(err.message || "Failed to load places");
+    } finally {
+      setPlacesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlaces();
+  }, []);
+
+  // =========================
+  // SUBMIT EVENT
+  // =========================
   const handleSubmit = async (payload) => {
     setLoading(true);
 
     try {
       const formData = new FormData();
 
-      formData.append("eventName", payload.eventName);
-      formData.append("eventDate", payload.eventDate);
-      formData.append("eventTime", payload.eventTime);
+      // =========================
+      // MAIN FIELDS
+      // =========================
+      formData.append("eventName", payload.eventName || "");
+      formData.append("eventDate", payload.eventDate || "");
+      formData.append("eventTime", payload.eventTime || "");
+      formData.append("eventEndTime", payload.eventEndTime || ""); // ✅ NEW FIELD
       formData.append("placeName", payload.eventPlace || "");
-      formData.append("description", payload.description);
+      formData.append("description", payload.description || "");
 
+      // =========================
+      // FILE
+      // =========================
       if (file) {
         formData.append("letterPdf", file);
       }
 
-      payload.approvers.forEach((a, i) => {
-        formData.append(`approvers[${i}].order`, String(a.order));
-        formData.append(`approvers[${i}].name`, a.name);
+      // =========================
+      // APPROVERS
+      // =========================
+      (payload.approvers || []).forEach((a, i) => {
+        formData.append(`approvers[${i}].order`, String(a.order ?? ""));
+        formData.append(`approvers[${i}].name`, String(a.name ?? ""));
       });
 
+      // =========================
+      // DEBUG LOG
+      // =========================
+      console.log("🚀 EVENT REQUEST:");
+      for (let pair of formData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
+
+      // =========================
+      // API CALL
+      // =========================
       const response = await fetch(
         "http://localhost:8081/api/letter/place",
         {
           method: "POST",
-          credentials: "include", // 🔥 important if session login
+          credentials: "include",
           body: formData,
         }
       );
 
+      const text = await response.text();
+      console.log("📩 RESPONSE:", text);
+
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || "Failed to create event");
+        throw new Error(text || "Failed to create event");
       }
 
-      const result = await response.json();
-
-      alert(result?.message || "Event created successfully!");
+      alert(text || "Event created successfully!");
 
       // RESET FORM
       setValues(getInitialState());
       setFile(null);
 
     } catch (err) {
-      console.error("ERROR:", err.message);
-      alert(err.message || "Failed to create event");
+      console.error("❌ ERROR:", err);
+      alert(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -80,15 +148,28 @@ function EventPage() {
         Create Event
       </h1>
 
+      {/* LOADING PLACES */}
+      {placesLoading && (
+        <p className="text-white">Loading places...</p>
+      )}
+
+      {/* ERROR PLACES */}
+      {placesError && (
+        <p className="text-red-400">{placesError}</p>
+      )}
+
+      {/* FORM */}
       <EventForm
         values={values}
         setValues={setValues}
         file={file}
         setFile={setFile}
         roleMap={roleMap}
+        places={places}
         onSubmit={handleSubmit}
       />
 
+      {/* LOADING OVERLAY */}
       {loading && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
           <div className="bg-blue-600 px-6 py-3 rounded-full text-white font-bold animate-pulse">

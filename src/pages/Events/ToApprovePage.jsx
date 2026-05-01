@@ -3,38 +3,49 @@ import ApprovalLetterCard from "../../components/events/ApprovalLetterCard";
 
 function ToApprovePage() {
   const [letters, setLetters] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [reason, setReason] = useState("");
 
-  // ✅ GET letters to approve
+  // =========================
+  // 📥 FETCH LETTERS
+  // =========================
   const fetchData = useCallback(async () => {
+    setLoading(true);
+
     try {
       const response = await fetch(
         "http://localhost:8081/api/letter/to-approve",
         {
           method: "GET",
-          credentials: "include", // ✅ IMPORTANT
+          credentials: "include",
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch letters to approve");
-      }
-
       const data = await response.json();
 
-      const list = Array.isArray(data)
-        ? data
-        : data?.data
-        ? data.data
-        : [];
+      console.log("📩 RAW RESPONSE:", data);
+
+      // ✅ FIXED RESPONSE PARSING
+      const list =
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data?.content)
+          ? data.content
+          : [];
+
+      console.log("📦 PARSED LETTER LIST:", list);
 
       setLetters(list);
     } catch (err) {
-      console.error("ERROR:", err.message);
+      console.error("❌ FETCH ERROR:", err.message);
       setLetters([]);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -42,43 +53,53 @@ function ToApprovePage() {
     fetchData();
   }, [fetchData]);
 
-  // ✅ APPROVE (POST)
+  // =========================
+  // 👍 APPROVE LETTER
+  // =========================
   const handleApprove = async (id) => {
     try {
       const res = await fetch(
         `http://localhost:8081/api/letter/${id}/approve`,
         {
-          method: "POST", // ✅ FIXED
+          method: "POST",
           credentials: "include",
         }
       );
 
-      if (!res.ok) throw new Error("Approve failed");
+      const text = await res.text();
+
+      if (!res.ok) throw new Error(text || "Approve failed");
+
+      console.log("✅ APPROVED:", text);
 
       setLetters((prev) =>
         prev.filter((l) => l.letterId !== id)
       );
     } catch (err) {
-      console.error("Approve error:", err.message);
+      console.error("❌ Approve error:", err.message);
     }
   };
 
-  // ❌ OPEN MODAL
+  // =========================
+  // ❌ OPEN REJECT MODAL
+  // =========================
   const openRejectModal = (id) => {
     setSelectedId(id);
     setReason("");
     setShowModal(true);
   };
 
-  // ❌ REJECT (POST)
+  // =========================
+  // ❌ REJECT LETTER
+  // =========================
   const confirmReject = async () => {
-    try {
-      if (!reason.trim()) return;
+    if (!reason.trim()) return;
 
+    try {
       const res = await fetch(
         `http://localhost:8081/api/letter/${selectedId}/reject`,
         {
-          method: "POST", // ✅ FIXED (you said POST)
+          method: "POST",
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
@@ -87,7 +108,11 @@ function ToApprovePage() {
         }
       );
 
-      if (!res.ok) throw new Error("Reject failed");
+      const text = await res.text();
+
+      if (!res.ok) throw new Error(text || "Reject failed");
+
+      console.log("❌ REJECTED:", text);
 
       setLetters((prev) =>
         prev.filter((l) => l.letterId !== selectedId)
@@ -102,33 +127,43 @@ function ToApprovePage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#050b1a] p-6 text-white overflow-hidden">
+    <div className="relative min-h-screen bg-[#050b1a] p-6 text-white">
 
-      {/* header */}
+      {/* HEADER */}
       <div className="mb-6 border-b border-white/10 pb-4">
         <h1 className="text-3xl font-bold">To Approve</h1>
-        <p className="text-slate-400 text-sm">Pending approvals</p>
+        <p className="text-slate-400 text-sm">
+          Pending approvals
+        </p>
       </div>
 
-      {/* cards */}
+      {/* LOADING */}
+      {loading && (
+        <p className="text-slate-400">
+          Loading letters...
+        </p>
+      )}
+
+      {/* EMPTY STATE */}
+      {!loading && letters.length === 0 && (
+        <div className="text-center text-slate-400 mt-20">
+          No letters pending approval 🎉
+        </div>
+      )}
+
+      {/* LIST */}
       <div className="space-y-6">
-        {letters.length === 0 ? (
-          <div className="text-center text-slate-400 mt-20">
-            No letters pending approval 🎉
-          </div>
-        ) : (
-          letters.map((letter) => (
-            <ApprovalLetterCard
-              key={letter.letterId}
-              letter={letter}
-              onApprove={handleApprove}
-              onReject={openRejectModal}
-            />
-          ))
-        )}
+        {letters.map((letter) => (
+          <ApprovalLetterCard
+            key={letter.letterId}
+            letter={letter}
+            onApprove={handleApprove}
+            onReject={openRejectModal}
+          />
+        ))}
       </div>
 
-      {/* MODAL */}
+      {/* REJECT MODAL */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-[#0f172a] w-[400px] p-6 rounded-2xl border border-white/10">
@@ -141,16 +176,25 @@ function ToApprovePage() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="w-full h-28 p-3 rounded-lg bg-white/5 border border-white/10"
+              placeholder="Enter rejection reason..."
             />
 
             <div className="flex justify-end gap-3 mt-4">
-              <button onClick={() => setShowModal(false)}>
+
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-slate-300"
+              >
                 Cancel
               </button>
 
-              <button onClick={confirmReject}>
+              <button
+                onClick={confirmReject}
+                className="bg-red-600 px-4 py-2 rounded"
+              >
                 Reject
               </button>
+
             </div>
 
           </div>
