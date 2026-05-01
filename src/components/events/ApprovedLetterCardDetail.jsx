@@ -1,85 +1,157 @@
 import React from "react";
 import PdfViewer from "../PdfViewer";
+import { 
+  Calendar, Clock, MapPin, User, CheckCircle2, 
+  History, FileText, ExternalLink, ShieldCheck, 
+  ChevronRight, BookmarkCheck
+} from "lucide-react";
+import { format } from "date-fns";
 
 function ApprovedLetterCardDetail({ letter }) {
+  if (!letter) return null;
+
   const pdfUrl = `http://localhost:8081/${letter.pdfPath}`;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white/5 border border-white/10 rounded-2xl p-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
+      
+      {/* 🟢 APPROVAL GLOW ACCENT */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] pointer-events-none" />
 
-      {/* LEFT → PDF */}
-      <div className="h-[450px] bg-black/40 rounded-xl overflow-hidden border border-white/5 relative">
-        <div className="absolute top-0 left-0 right-0 h-10 bg-black/50 backdrop-blur-md flex items-center px-4 border-b border-white/10 z-10">
-          <p className="text-xs text-slate-400 font-medium">
-            📄 Document Preview
-          </p>
+      {/* 📄 LEFT COLUMN: PDF PREVIEW */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2 text-slate-500">
+            <FileText size={14} />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Verified Document</span>
+          </div>
+          <a 
+            href={pdfUrl} 
+            target="_blank" 
+            rel="noreferrer"
+            className="group flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 transition-colors text-[10px] font-bold uppercase tracking-widest"
+          >
+            Full View <ExternalLink size={12} className="group-hover:-translate-y-0.5 transition-transform" />
+          </a>
         </div>
-        <div className="pt-10 h-full">
+        
+        <div className="bg-slate-950 rounded-[2rem] overflow-hidden border border-slate-700/50 shadow-2xl h-[550px] relative">
           <PdfViewer fileUrl={pdfUrl} />
         </div>
       </div>
 
-      {/* RIGHT → DETAILS */}
-      <div className="flex flex-col justify-between">
-
-        <div className="space-y-5">
-
-          {/* TITLE */}
-          <div>
-            <h2 className="text-2xl font-bold">
-              {letter.title}
-            </h2>
-
-            <p className="text-slate-400 text-sm mt-2">
-              {letter.description}
-            </p>
-          </div>
-
-          {/* INFO GRID */}
-          <div className="grid grid-cols-2 gap-3 text-sm text-slate-300">
-            <p>📅 {letter.eventDate}</p>
-            <p>⏰ {letter.eventTime}</p>
-            {letter.eventPlace && <p>📍 {letter.eventPlace}</p>}
-            <p>
-              Status:{" "}
-              <span className="text-green-400 font-semibold">
-                {letter.globalStatus}
-              </span>
-            </p>
-          </div>
-
-          {/* SENDER */}
-          <div className="text-sm text-slate-400">
-            👤 {letter.sender?.name} ({letter.sender?.regNumber})
-          </div>
-
-          {/* APPROVAL INFO */}
-          <div className="bg-green-500/10 border border-green-500/20 p-3 rounded-lg text-green-300 text-sm">
-            ✅ You approved this letter
-          </div>
-
-          {/* APPROVAL HISTORY */}
-          <div>
-            <p className="text-xs text-slate-500 uppercase font-bold mb-2">
-              Approval History
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-              {letter.previousApprovers?.map((p, i) => (
-                <span
-                  key={i}
-                  className="px-3 py-1 bg-green-600/20 text-green-400 rounded-full text-xs"
-                >
-                  ✔ {p.name} ({p.status})
-                </span>
-              ))}
+      {/* 📋 RIGHT COLUMN: DETAILS */}
+      <div className="flex flex-col space-y-6">
+        
+        {/* HEADER SECTION */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 inline-flex items-center gap-2">
+              <ShieldCheck size={14} />
+              <span className="text-[10px] font-black uppercase tracking-widest">Status: Approved</span>
             </div>
           </div>
+          
+          <h2 className="text-4xl font-black text-white tracking-tight leading-tight">
+            {letter.title}
+          </h2>
+          
+          <p className="text-slate-400 leading-relaxed border-l-2 border-emerald-500/30 pl-4">
+            {letter.description || "No project description provided."}
+          </p>
+        </div>
 
+        {/* LOGISTICS GRID */}
+        <div className="grid grid-cols-2 gap-3">
+          <DetailTile 
+            icon={<Calendar />} 
+            label="Event Date" 
+            value={letter.eventDate ? format(new Date(letter.eventDate), "MMM dd, yyyy") : "N/A"} 
+          />
+          <DetailTile 
+            icon={<Clock />} 
+            label="Timeline" 
+            value={`${letter.eventTime.slice(0, 5)} - ${letter.eventEndTime.slice(0, 5)}`} 
+          />
+          <DetailTile 
+            icon={<MapPin />} 
+            label="Location" 
+            value={letter.eventPlace || "Unspecified Location"} 
+          />
+          <DetailTile 
+            icon={<User />} 
+            label="Sender" 
+            value={letter.sender?.name} 
+          />
+        </div>
+
+        {/* 🟢 APPROVAL SUMMARY */}
+        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-6 relative overflow-hidden">
+          <BookmarkCheck className="absolute -right-4 -bottom-4 text-emerald-500/5" size={100} />
+          
+          <div className="relative z-10 flex items-start gap-4">
+            <div className="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-400 shrink-0">
+              <CheckCircle2 size={24} />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-white font-bold">Final Clearance Issued</h4>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                This request has passed all system validation steps and is authorized for execution as per the provided schedule.
+              </p>
+              <p className="text-[10px] text-emerald-500/60 font-black uppercase tracking-widest pt-2">
+                Clearance Date: {letter.finalDecisionAt ? format(new Date(letter.finalDecisionAt), "PPPP") : "N/A"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* PIPELINE HISTORY */}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center gap-2 text-slate-500 px-1">
+            <History size={14} />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Approval Pipeline</span>
+          </div>
+
+          <div className="space-y-2">
+            {letter.previousApprovers?.map((p, i) => (
+              <div 
+                key={i} 
+                className="flex items-center justify-between p-4 rounded-2xl bg-slate-900/40 border border-slate-800/50"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                    <CheckCircle2 size={14} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-200">{p.name}</p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">
+                       Verified at Step {p.stepOrder} • {p.regNumber}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                   <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest mb-1">Authenticated</p>
+                   <p className="text-[10px] text-slate-400">{p.actedAt ? format(new Date(p.actedAt), "HH:mm") : ""}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
       </div>
+    </div>
+  );
+}
 
+// Reusable Detail Tile
+function DetailTile({ icon, label, value }) {
+  return (
+    <div className="p-4 rounded-[1.5rem] bg-slate-900/30 border border-slate-800/50 group hover:border-emerald-500/30 transition-all">
+      <div className="text-slate-500 mb-2 group-hover:text-emerald-400 transition-colors">
+        {React.cloneElement(icon, { size: 16 })}
+      </div>
+      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</p>
+      <p className="text-slate-200 text-sm font-bold truncate leading-tight">{value}</p>
     </div>
   );
 }

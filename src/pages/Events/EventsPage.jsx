@@ -122,10 +122,6 @@ function EventPage() {
   return (
     <div className="relative min-h-screen bg-[#050b1a] p-6 space-y-8">
 
-      <h1 className="text-2xl font-bold text-white">
-        Create Event
-      </h1>
-
       {/* LOADING PLACES */}
       {placesLoading && (
         <p className="text-white">Loading places...</p>
