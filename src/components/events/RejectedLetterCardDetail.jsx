@@ -9,7 +9,7 @@ import { format } from "date-fns";
 function RejectedLetterCardDetail({ letter }) {
   if (!letter) return null;
 
-  const pdfUrl = `http://localhost:8081/${letter.pdfPath}`;
+  const pdfUrl = `http://localhost:8081${letter.pdfPath}`;
 
   // Find the specific approver who rejected the request to pull their remarks if needed
   const rejectingApprover = letter.previousApprovers?.find(a => a.status === "REJECTED");

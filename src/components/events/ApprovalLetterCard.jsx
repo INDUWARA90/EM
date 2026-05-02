@@ -1,144 +1,258 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import PdfViewer from "../PdfViewer";
-import { 
-  Calendar, Clock, MapPin, User, ShieldAlert, 
-  History, FileText, ExternalLink, CheckCircle2, XCircle 
-} from "lucide-react";
-import { format } from "date-fns";
+import { CheckCircle2, XCircle } from "lucide-react";
 
-const ApprovalLetterCard = ({ letter, onApprove, onReject }) => {
+const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
   if (!letter) return null;
 
-  const totalSteps =
-    (letter.previousApprovers?.length || 0) +
-    (letter.nextApprovers?.length || 0) +
-    1;
+  const BASE_URL = "http://localhost:8081";
 
-  const pdfUrl = `http://localhost:8081/${letter.pdfPath}`;
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [remark, setRemark] = useState("");
+  const [signaturePos, setSignaturePos] = useState(null);
+  const [userSignature, setUserSignature] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // ================= FIXED PDF URL (NO DOUBLE SLASH) =================
+  const cleanPath = (path) => {
+    if (!path) return "";
+    return path.startsWith("/") ? path : `/${path}`;
+  };
+
+  const pdfUrl = letter?.pdfPath
+    ? `${BASE_URL}${cleanPath(letter.pdfPath).replace("../", "")}`
+    : null;
+
+  // ================= FETCH SIGNATURE =================
+  useEffect(() => {
+    const fetchSignature = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/signature/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!res.ok) throw new Error("Failed to load signature");
+
+        const data = await res.json();
+        setUserSignature(data);
+      } catch (err) {
+        console.error("Signature load error:", err);
+        setUserSignature(null);
+      }
+    };
+
+    fetchSignature();
+  }, []);
+
+  const signatureUrl = userSignature?.signatureImagePath
+    ? `${BASE_URL}${cleanPath(userSignature.signatureImagePath)}`
+    : null;
+
+  // ================= CLICK POSITION =================
+  const handlePdfClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+
+    setSignaturePos({
+      pageIndex: 0,
+      x: Math.round(e.clientX - rect.left),
+      y: Math.round(e.clientY - rect.top),
+      width: 150,
+      height: 50,
+      origin: "TOP_LEFT",
+    });
+  };
+
+  // ================= ONLY SIGN-APPROVE API =================
+  const handleFinalApprove = async () => {
+    if (!signaturePos) {
+      alert("Please select signature position");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const payload = {
+        signature: signaturePos,
+        remarks: remark || "Approved by lecturer",
+      };
+
+      const res = await fetch(
+        `${BASE_URL}/api/letter/${letter.letterId}/sign-approve`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("ERROR:", text);
+        throw new Error("Sign approval failed");
+      }
+
+      const data = await res.json();
+
+      setRemark("");
+      setSignaturePos(null);
+      setShowApproveModal(false);
+
+      if (onApprove) onApprove(letter.letterId, data);
+    } catch (err) {
+      console.error(err);
+      alert("Approval failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-900/50 border border-white/10 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-2xl overflow-hidden relative">
-      
-      {/* 🟦 BLUE GLOW FOR PENDING STATUS */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] pointer-events-none" />
+    <>
+      {/* ================= CARD ================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-900/50 border border-white/10 rounded-[2.5rem] p-8">
 
-      {/* LEFT → PDF VIEWER */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-2 text-slate-500">
-            <FileText size={14} />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Request Document</span>
-          </div>
-          <a 
-            href={pdfUrl} 
-            target="_blank" 
-            rel="noreferrer"
-            className="text-blue-400 hover:text-blue-300 transition-colors text-[10px] font-bold uppercase tracking-widest flex items-center gap-1"
-          >
-            Full View <ExternalLink size={12} />
-          </a>
+        {/* PDF */}
+        <div
+          className="h-[500px] bg-black rounded-2xl relative overflow-hidden cursor-crosshair"
+          onClick={handlePdfClick}
+        >
+          {pdfUrl && <PdfViewer fileUrl={pdfUrl} />}
+
+          {signaturePos && (
+            <div
+              style={{
+                position: "absolute",
+                left: signaturePos.x,
+                top: signaturePos.y,
+                width: signaturePos.width,
+                height: signaturePos.height,
+                border: "2px solid #3b82f6",
+                background: "rgba(59,130,246,0.15)",
+                pointerEvents: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                color: "#60a5fa",
+                fontWeight: "bold",
+              }}
+            >
+              SIGN HERE
+            </div>
+          )}
         </div>
-        
-        <div className="h-[500px] bg-black/60 rounded-[2rem] overflow-hidden border border-white/5 shadow-inner">
-          <PdfViewer fileUrl={pdfUrl} />
+
+        {/* DETAILS */}
+        <div className="text-white flex flex-col justify-between">
+          <div>
+            <h2 className="text-3xl font-black">{letter.title}</h2>
+            <p className="text-slate-400 mt-2">{letter.description}</p>
+
+            <div className="mt-4 p-3 bg-blue-600/20 rounded-xl">
+              Current Approver: {letter.currentApprover?.name}
+            </div>
+          </div>
+
+          <div className="flex gap-4 mt-10">
+            <button
+              onClick={() => onReject(letter.letterId)}
+              className="flex-1 bg-slate-800 p-4 rounded-xl"
+            >
+              <XCircle size={16} /> Reject
+            </button>
+
+            <button
+              onClick={() => setShowApproveModal(true)}
+              className="flex-1 bg-blue-600 p-4 rounded-xl"
+            >
+              <CheckCircle2 size={16} /> Approve
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* RIGHT → DETAILS */}
-      <div className="text-white flex flex-col justify-between py-2">
-        <div className="space-y-6">
-          
-          {/* HEADER & STEP INDICATOR */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 rounded-full bg-blue-600/10 text-blue-400 text-[10px] font-black uppercase border border-blue-600/20 tracking-tighter">
-                Step {letter.currentApprover?.stepOrder} of {totalSteps}
-              </span>
-              <span className="px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-400 text-[10px] font-black uppercase border border-yellow-500/20 tracking-tighter">
-                {letter.globalStatus}
-              </span>
-            </div>
+      {/* ================= MODAL ================= */}
+      {showApproveModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
 
-            <h2 className="text-4xl font-black tracking-tight leading-tight">
-              {letter.title}
+          <div className="bg-slate-900 w-[90%] max-w-6xl rounded-2xl p-6">
+
+            <h2 className="text-xl font-bold mb-4 text-white">
+              Approve Letter
             </h2>
 
-            <p className="text-slate-400 text-sm leading-relaxed italic border-l-2 border-slate-700 pl-4">
-              "{letter.description}"
-            </p>
-          </div>
+            <div className="grid grid-cols-2 gap-6">
 
-          {/* LOGISTICS GRID */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-              <p className="text-[9px] text-slate-500 font-black uppercase mb-1">Date</p>
-              <p className="text-sm font-bold flex items-center gap-2">
-                <Calendar size={14} className="text-blue-400" /> {letter.eventDate}
-              </p>
-            </div>
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-              <p className="text-[9px] text-slate-500 font-black uppercase mb-1">Time</p>
-              <p className="text-sm font-bold flex items-center gap-2">
-                <Clock size={14} className="text-blue-400" /> {letter.eventTime.slice(0, 5)}
-              </p>
-            </div>
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/5 col-span-2">
-              <p className="text-[9px] text-slate-500 font-black uppercase mb-1">Requested By</p>
-              <p className="text-sm font-bold flex items-center gap-2">
-                <User size={14} className="text-blue-400" /> {letter.sender?.name} ({letter.sender?.regNumber})
-              </p>
-            </div>
-          </div>
-
-          {/* APPROVAL FLOW VISUALIZER */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-2 text-slate-500">
-              <History size={14} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Workflow Timeline</span>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {/* Completed Steps */}
-              {letter.previousApprovers?.map((p, i) => (
-                <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl text-[11px] font-bold">
-                  <CheckCircle2 size={12} /> {p.name}
-                </div>
-              ))}
-
-              {/* Current Step (Action Needed) */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-[11px] font-bold shadow-lg shadow-blue-600/20 animate-pulse">
-                <ShieldAlert size={12} /> {letter.currentApprover?.name} (You)
+              {/* PDF */}
+              <div
+                className="h-[450px] relative bg-black rounded-xl overflow-hidden cursor-crosshair"
+                onClick={handlePdfClick}
+              >
+                {pdfUrl && <PdfViewer fileUrl={pdfUrl} />}
               </div>
 
-              {/* Future Steps */}
-              {letter.nextApprovers?.map((n, i) => (
-                <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-white/5 text-slate-500 rounded-xl text-[11px] font-bold">
-                  <Clock size={12} /> {n.name}
+              {/* RIGHT SIDE */}
+              <div className="flex flex-col">
+
+                <div className="mb-4">
+                  <p className="text-xs text-slate-400 mb-2">
+                    My Signature
+                  </p>
+
+                  {signatureUrl ? (
+                    <img
+                      src={signatureUrl}
+                      alt="signature"
+                      className="h-24 bg-white rounded-lg p-2"
+                    />
+                  ) : (
+                    <p className="text-red-400 text-xs">
+                      No signature found
+                    </p>
+                  )}
                 </div>
-              ))}
+
+                <label className="text-xs text-slate-400 mb-2">
+                  Remark
+                </label>
+
+                <textarea
+                  value={remark}
+                  onChange={(e) => setRemark(e.target.value)}
+                  className="flex-1 p-3 rounded-xl bg-slate-800 text-white"
+                />
+              </div>
             </div>
+
+            {/* ACTIONS */}
+            <div className="flex justify-end gap-3 mt-5">
+
+              <button
+                onClick={() => setShowApproveModal(false)}
+                className="px-4 py-2 bg-slate-700 rounded-xl"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleFinalApprove}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-600 rounded-xl disabled:opacity-50"
+              >
+                {loading ? "Approving..." : "Confirm Approve"}
+              </button>
+
+            </div>
+
           </div>
         </div>
-
-        {/* ACTIONS */}
-        <div className="flex gap-4 mt-10">
-          <button
-            onClick={() => onReject(letter.letterId)}
-            className="group flex-1 bg-slate-800 hover:bg-red-600/20 border border-white/5 hover:border-red-500/40 text-slate-400 hover:text-red-400 p-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all flex items-center justify-center gap-2"
-          >
-            <XCircle size={16} className="group-hover:scale-110 transition-transform" /> Reject
-          </button>
-
-          <button
-            onClick={() => onApprove(letter.letterId)}
-            className="group flex-1 bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-2"
-          >
-            <CheckCircle2 size={16} className="group-hover:scale-110 transition-transform" /> Approve Request
-          </button>
-        </div>
-
-      </div>
-    </div>
+      )}
+    </>
   );
 };
 

@@ -9,7 +9,7 @@ import {
 const LetterCard = ({ letter }) => {
   if (!letter) return null;
 
-  const pdfUrl = `http://localhost:8081/${letter.pdfPath}`;
+  const pdfUrl = `http://localhost:8081${letter.pdfPath}`;
 
   // Helper to format time strings (20:36:00 -> 20:36)
   const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : "--:--";

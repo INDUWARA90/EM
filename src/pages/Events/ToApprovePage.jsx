@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import ApprovalLetterCard from "../../components/events/ApprovalLetterCard";
-import { getLettersToApprove, approveLetter, rejectLetter } from "../../api/approvalService";
+import { getLettersToApprove, rejectLetter } from "../../api/approvalService";
 
 function ToApprovePage() {
   const [letters, setLetters] = useState([]);
@@ -10,18 +10,13 @@ function ToApprovePage() {
   const [selectedId, setSelectedId] = useState(null);
   const [reason, setReason] = useState("");
 
-  // =========================
-  // 📥 FETCH LETTERS
-  // =========================
+  // ================= FETCH LETTERS =================
   const fetchData = useCallback(async () => {
     setLoading(true);
 
     try {
       const data = await getLettersToApprove();
 
-      console.log("📩 RAW RESPONSE:", data);
-
-      // ✅ FIXED RESPONSE PARSING
       const list =
         Array.isArray(data)
           ? data
@@ -31,11 +26,9 @@ function ToApprovePage() {
           ? data.content
           : [];
 
-      console.log("📦 PARSED LETTER LIST:", list);
-
       setLetters(list);
     } catch (err) {
-      console.error("❌ FETCH ERROR:", err.message);
+      console.error("FETCH ERROR:", err.message);
       setLetters([]);
     } finally {
       setLoading(false);
@@ -46,42 +39,23 @@ function ToApprovePage() {
     fetchData();
   }, [fetchData]);
 
-  // =========================
-  // 👍 APPROVE LETTER
-  // =========================
-  const handleApprove = async (id) => {
-    try {
-      const text = await approveLetter(id);
-
-      console.log("✅ APPROVED:", text);
-
-      setLetters((prev) =>
-        prev.filter((l) => l.letterId !== id)
-      );
-    } catch (err) {
-      console.error("❌ Approve error:", err.message);
-    }
+  // ================= REFRESH AFTER APPROVE =================
+  const handleApproveSuccess = () => {
+    fetchData(); // reload list after sign-approve
   };
 
-  // =========================
-  // ❌ OPEN REJECT MODAL
-  // =========================
+  // ================= REJECT =================
   const openRejectModal = (id) => {
     setSelectedId(id);
     setReason("");
     setShowModal(true);
   };
 
-  // =========================
-  // ❌ REJECT LETTER
-  // =========================
   const confirmReject = async () => {
     if (!reason.trim()) return;
 
     try {
-      const text = await rejectLetter(selectedId, reason);
-
-      console.log("❌ REJECTED:", text);
+      await rejectLetter(selectedId, reason);
 
       setLetters((prev) =>
         prev.filter((l) => l.letterId !== selectedId)
@@ -98,36 +72,28 @@ function ToApprovePage() {
   return (
     <div className="relative min-h-screen bg-[#050b1a] p-6 text-white">
 
-      {/* HEADER */}
       <div className="mb-6 border-b border-white/10 pb-4">
         <h1 className="text-3xl font-bold">To Approve</h1>
-        <p className="text-slate-400 text-sm">
-          Pending approvals
-        </p>
+        <p className="text-slate-400 text-sm">Pending approvals</p>
       </div>
 
-      {/* LOADING */}
       {loading && (
-        <p className="text-slate-400">
-          Loading letters...
-        </p>
+        <p className="text-slate-400">Loading letters...</p>
       )}
 
-      {/* EMPTY STATE */}
       {!loading && letters.length === 0 && (
         <div className="text-center text-slate-400 mt-20">
           No letters pending approval 🎉
         </div>
       )}
 
-      {/* LIST */}
       <div className="space-y-6">
         {letters.map((letter) => (
           <ApprovalLetterCard
             key={letter.letterId}
             letter={letter}
-            onApprove={handleApprove}
             onReject={openRejectModal}
+            onApprove={handleApproveSuccess}   // ✅ IMPORTANT FIX
           />
         ))}
       </div>
@@ -169,7 +135,6 @@ function ToApprovePage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

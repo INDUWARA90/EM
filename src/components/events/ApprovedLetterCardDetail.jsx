@@ -10,7 +10,7 @@ import { format } from "date-fns";
 function ApprovedLetterCardDetail({ letter }) {
   if (!letter) return null;
 
-  const pdfUrl = `http://localhost:8081/${letter.pdfPath}`;
+  const pdfUrl = `http://localhost:8081${letter.pdfPath}`;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">

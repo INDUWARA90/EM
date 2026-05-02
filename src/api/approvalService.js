@@ -4,10 +4,6 @@ import apiClient from './client';
 export const getLettersToApprove = () => 
   apiClient.get('/letter/to-approve');
 
-// Approve letter
-export const approveLetter = (id) => 
-  apiClient.post(`/letter/${id}/approve`);
-
 // Reject letter with reason
 export const rejectLetter = (id, reason) => 
   apiClient.post(`/letter/${id}/reject`, { reason });
