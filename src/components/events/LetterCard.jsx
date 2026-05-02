@@ -1,5 +1,6 @@
 import React from "react";
 import PdfViewer from "../PdfViewer";
+import { buildServerFileUrl } from "../../api/fileUrl";
 import { 
   Calendar, Clock, MapPin, User, ShieldAlert, 
   History, FileText, ExternalLink, ChevronRight,
@@ -9,7 +10,7 @@ import {
 const LetterCard = ({ letter }) => {
   if (!letter) return null;
 
-  const pdfUrl = `http://localhost:8081/${letter.pdfPath}`;
+  const pdfUrl = buildServerFileUrl(letter.pdfPath);
 
   // Helper to format time strings (20:36:00 -> 20:36)
   const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : "--:--";
