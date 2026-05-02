@@ -22,9 +22,6 @@ const ApprovalLetterSummary = ({ letter, onReject, onOpenApproveModal }) => {
           <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest rounded">
             {letter.globalStatus}
           </span>
-          <div className="flex items-center text-slate-500 text-[10px] font-bold">
-            <Hash size={10} /> {letter.letterId}
-          </div>
         </div>
         <h2 className="text-4xl font-black tracking-tight leading-tight uppercase">
           {letter.title}

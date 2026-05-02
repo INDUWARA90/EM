@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import LetterCard from "../../components/events/LetterCard";
+import { LetterCard } from "../../features/events/components";
 import { getMyLetters } from "../../api/eventService";
 
 function MyLettersPage() {

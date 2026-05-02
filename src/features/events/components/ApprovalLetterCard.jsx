@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { getMySignature, signApproveLetter } from "../../api/approvalService";
-import { buildServerFileUrl } from "../../api/fileUrl";
+import { approveLetter, getMySignature, signApproveLetter } from "../../../api/approvalService";
+import { buildServerFileUrl } from "../../../api/fileUrl";
+import { getResponsiblePerson } from "../../../api/eventService";
 import ApprovalLetterModal from "./ApprovalLetterModal";
 import ApprovalLetterSummary from "./ApprovalLetterSummary";
 import ApprovalPdfPreview from "./ApprovalPdfPreview";
@@ -10,22 +11,64 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
   const [remark, setRemark] = useState("");
   const [signaturePos, setSignaturePos] = useState(null);
   const [userSignature, setUserSignature] = useState(null);
+  const [isResponsibleApprover, setIsResponsibleApprover] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // ================= FETCH SIGNATURE =================
+  const isSameApprover = (currentApprover, responsiblePerson) => {
+    if (!currentApprover || !responsiblePerson) return false;
+
+    return ["id", "userId", "approverId", "regNumber", "email", "name"].some(
+      (key) =>
+        currentApprover[key] &&
+        responsiblePerson[key] &&
+        String(currentApprover[key]).toLowerCase() ===
+          String(responsiblePerson[key]).toLowerCase()
+    ) ||
+      (currentApprover.regNumber &&
+        responsiblePerson.responsiblePersonRegNumber &&
+        String(currentApprover.regNumber).toLowerCase() ===
+          String(responsiblePerson.responsiblePersonRegNumber).toLowerCase()) ||
+      (currentApprover.name &&
+        responsiblePerson.responsiblePersonName &&
+        String(currentApprover.name).toLowerCase() ===
+          String(responsiblePerson.responsiblePersonName).toLowerCase());
+  };
+
+  // ================= FETCH APPROVAL CONTEXT =================
   useEffect(() => {
-    const fetchSignature = async () => {
+    const fetchApprovalContext = async () => {
+      if (!letter) return;
+
       try {
-        const data = await getMySignature();
-        setUserSignature(data);
+        const responsiblePerson = await getResponsiblePerson(letter.eventPlace);
+        const responsibleApprover = isSameApprover(
+          letter.currentApprover,
+          responsiblePerson
+        );
+
+        setIsResponsibleApprover(responsibleApprover);
+
+        if (responsibleApprover) {
+          setUserSignature(null);
+          setSignaturePos(null);
+          return;
+        }
+      } catch (err) {
+        console.error("Responsible approver check error:", err);
+        setIsResponsibleApprover(false);
+      }
+
+      try {
+        const signature = await getMySignature();
+        setUserSignature(signature);
       } catch (err) {
         console.error("Signature load error:", err);
         setUserSignature(null);
       }
     };
 
-    fetchSignature();
-  }, []);
+    fetchApprovalContext();
+  }, [letter]);
 
   // ================= CLICK POSITION =================
   const handlePdfClick = (e) => {
@@ -41,9 +84,9 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
     });
   };
 
-  // ================= ONLY SIGN-APPROVE API =================
+  // ================= APPROVE =================
   const handleFinalApprove = async () => {
-    if (!signaturePos) {
+    if (!isResponsibleApprover && !signaturePos) {
       alert("Please select signature position");
       return;
     }
@@ -51,12 +94,13 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
     try {
       setLoading(true);
 
-      const payload = {
-        signature: signaturePos,
-        remarks: remark || "Approved by lecturer",
-      };
-
-      const data = await signApproveLetter(letter.letterId, payload);
+      const remarks = remark || "Approved by lecturer";
+      const data = isResponsibleApprover
+        ? await approveLetter(letter.letterId, { remarks })
+        : await signApproveLetter(letter.letterId, {
+            signature: signaturePos,
+            remarks,
+          });
 
       setRemark("");
       setSignaturePos(null);
@@ -100,6 +144,7 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
           remark={remark}
           signatureUrl={signatureUrl}
           signaturePosition={signaturePos}
+          requiresSignature={!isResponsibleApprover}
           loading={loading}
           onRemarkChange={setRemark}
           onSelectSignaturePosition={handlePdfClick}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import ApprovalLetterCard from "../../components/events/ApprovalLetterCard";
+import { ApprovalLetterCard } from "../../features/events/components";
 import { getLettersToApprove, rejectLetter } from "../../api/approvalService";
 
 function ToApprovePage() {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import ApprovedLetterCardDetail from "../../components/events/ApprovedLetterCardDetail";
+import { ApprovedLetterCardDetail } from "../../features/events/components";
 import { getApprovedByMe } from "../../api/approvalService";
 
 function ApprovedByMePage() {

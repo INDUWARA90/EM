@@ -11,3 +11,7 @@ export const login = (regNumber, password) =>
 // Register new user
 export const register = (username, email, password, regNumber, role) => 
   apiClient.post('/auth/register', { username, email, password, regNumber, role: [role] });
+
+export const logoutUser = async () => {
+   apiClient.post("/api/auth/signout");
+};
