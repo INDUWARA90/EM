@@ -8,6 +8,14 @@ export const getLettersToApprove = () =>
 export const rejectLetter = (id, reason) => 
   apiClient.post(`/letter/${id}/reject`, { reason });
 
+// Get current user's saved signature
+export const getMySignature = () =>
+  apiClient.get('/signature/me');
+
+// Approve letter with selected signature position
+export const signApproveLetter = (id, payload) =>
+  apiClient.post(`/letter/${id}/sign-approve`, payload);
+
 // Get letters approved by me
 export const getApprovedByMe = () => 
   apiClient.get('/letter/approved-by-me');
