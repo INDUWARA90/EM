@@ -11,6 +11,7 @@ import ToApprovePage from "../pages/Events/ToApprovePage";
 import ApprovedByMePage from "../pages/Events/ApprovedByMePage";
 import RejectedByMePage from "../pages/Events/RejectedByMePage";
 import NotFoundPage from "../pages/NotFound/NotFoundPage";
+import PlacesPage from "../pages/Places/PlacesPage";
 
 function AppRouter() {
   return (
@@ -24,6 +25,7 @@ function AppRouter() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="events" element={<EventsPage />} />
+          <Route path="places" element={<PlacesPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="my-letters" element={<MyLettersPage />} />
           <Route path="to-approve" element={<ToApprovePage />} />

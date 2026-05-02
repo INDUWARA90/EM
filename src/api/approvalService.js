@@ -16,6 +16,10 @@ export const getMySignature = () =>
 export const signApproveLetter = (id, payload) =>
   apiClient.post(`/letter/${id}/sign-approve`, payload);
 
+// Approve letter without signature
+export const approveLetter = (id, payload) =>
+  apiClient.post(`/letter/${id}/approve`, payload);
+
 // Get letters approved by me
 export const getApprovedByMe = () => 
   apiClient.get('/letter/approved-by-me');

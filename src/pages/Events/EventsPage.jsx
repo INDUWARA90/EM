@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import EventForm from "../../components/events/EventForm";
+import { EventForm } from "../../features/events/components";
 import { getPlaces, createEvent as createEventAPI } from "../../api/eventService";
 
 function EventPage() {
@@ -136,7 +136,6 @@ function EventPage() {
       <EventForm
         values={values}
         setValues={setValues}
-        file={file}
         setFile={setFile}
         roleMap={roleMap}
         places={places}

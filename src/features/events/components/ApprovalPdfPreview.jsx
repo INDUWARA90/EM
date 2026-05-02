@@ -1,4 +1,4 @@
-import PdfViewer from "../PdfViewer";
+import PdfViewer from "../../../components/pdf/PdfViewer";
 
 const ApprovalPdfPreview = ({ pdfUrl, signaturePosition, onSelectSignaturePosition, heightClass = "h-[500px]" }) => (
   <div

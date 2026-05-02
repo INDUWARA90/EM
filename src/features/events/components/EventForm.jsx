@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import ApproversSection from "./ApproversSection";
-import { getPlaces, getResponsiblePerson } from "../../api/eventService";
+import { getPlaces, getResponsiblePerson } from "../../../api/eventService";
 import { Calendar, Clock, MapPin, AlignLeft, FileText, Send, Loader2, AlertCircle } from "lucide-react";
 
-function EventForm({ values, setValues, file, setFile, roleMap, onSubmit }) {
+function EventForm({ values, setValues, setFile, roleMap, onSubmit }) {
   const [places, setPlaces] = useState([]);
   const [loadingApprovers, setLoadingApprovers] = useState(false);
   const fileInputRef = useRef(null);
