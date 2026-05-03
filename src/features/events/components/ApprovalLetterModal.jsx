@@ -14,6 +14,8 @@ const ApprovalLetterModal = ({
   onClose,
   onConfirm,
 }) => {
+  const canPlaceSignature = requiresSignature && Boolean(signatureUrl);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop with blur */}
@@ -53,7 +55,7 @@ const ApprovalLetterModal = ({
           <div className="lg:col-span-8 p-6 bg-slate-950/30 border-r border-slate-800 overflow-y-auto">
             <div className="mb-4 flex items-center justify-between px-2">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Document Workspace</span>
-              {requiresSignature && !signaturePosition && (
+              {canPlaceSignature && !signaturePosition && (
                 <span className="text-[10px] text-amber-400 font-bold animate-pulse flex items-center gap-1">
                   <AlertCircle size={12} /> Click on the page to place signature
                 </span>
@@ -62,8 +64,8 @@ const ApprovalLetterModal = ({
             <div className="rounded-2xl overflow-hidden border border-slate-800 shadow-inner">
               <ApprovalPdfPreview
                 pdfUrl={pdfUrl}
-                signaturePosition={requiresSignature ? signaturePosition : null}
-                onSelectSignaturePosition={requiresSignature ? onSelectSignaturePosition : undefined}
+                signaturePosition={canPlaceSignature ? signaturePosition : null}
+                onSelectSignaturePosition={canPlaceSignature ? onSelectSignaturePosition : undefined}
                 heightClass="h-[550px]"
               />
             </div>
@@ -126,7 +128,7 @@ const ApprovalLetterModal = ({
                     Processing...
                   </>
                 ) : (
-                  "Confirm & Authenticate"
+                  "Approve Confirm"
                 )}
               </button>
               

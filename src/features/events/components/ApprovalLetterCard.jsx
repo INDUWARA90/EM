@@ -39,6 +39,8 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
     const fetchApprovalContext = async () => {
       if (!letter) return;
 
+      setSignaturePos(null);
+
       try {
         const responsiblePerson = await getResponsiblePerson(letter.eventPlace);
         const responsibleApprover = isSameApprover(
@@ -70,24 +72,15 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
     fetchApprovalContext();
   }, [letter]);
 
-  // ================= CLICK POSITION =================
-  const handlePdfClick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-
-    setSignaturePos({
-      pageIndex: 0,
-      x: Math.round(e.clientX - rect.left),
-      y: Math.round(e.clientY - rect.top),
-      width: 150,
-      height: 50,
-      origin: "TOP_LEFT",
-    });
-  };
-
   // ================= APPROVE =================
   const handleFinalApprove = async () => {
     if (!isResponsibleApprover && !signaturePos) {
       alert("Please select signature position");
+      return;
+    }
+
+    if (!isResponsibleApprover && !signatureUrl) {
+      alert("Please configure your signature before approving");
       return;
     }
 
@@ -119,21 +112,21 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
 
   const pdfUrl = buildServerFileUrl(letter.pdfPath);
   const signatureUrl = buildServerFileUrl(userSignature?.signatureImagePath);
+  const openApproveModal = () => {
+    setSignaturePos(null);
+    setShowApproveModal(true);
+  };
 
   return (
     <>
       {/* ================= CARD ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-900/50 border border-white/10 rounded-[2.5rem] p-8">
-        <ApprovalPdfPreview
-          pdfUrl={pdfUrl}
-          signaturePosition={signaturePos}
-          onSelectSignaturePosition={handlePdfClick}
-        />
+        <ApprovalPdfPreview pdfUrl={pdfUrl} />
 
         <ApprovalLetterSummary
           letter={letter}
           onReject={onReject}
-          onOpenApproveModal={() => setShowApproveModal(true)}
+          onOpenApproveModal={openApproveModal}
         />
       </div>
 
@@ -147,7 +140,7 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
           requiresSignature={!isResponsibleApprover}
           loading={loading}
           onRemarkChange={setRemark}
-          onSelectSignaturePosition={handlePdfClick}
+          onSelectSignaturePosition={signatureUrl ? setSignaturePos : undefined}
           onClose={() => setShowApproveModal(false)}
           onConfirm={handleFinalApprove}
         />

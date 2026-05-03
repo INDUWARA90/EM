@@ -35,7 +35,7 @@ const PlacesPage = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight uppercase">
-            Facility Resources
+            Faculty Resources
           </h1>
           <p className="text-slate-500 text-sm mt-1 font-medium">
             Manage and monitor campus locations and capacities.
