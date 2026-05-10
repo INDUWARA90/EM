@@ -14,8 +14,6 @@ function RejectedByMePage() {
     try {
       const data = await getRejectedByMe();
 
-      console.log("Rejected letters:", data);
-
       // handle array or single object safely
       const list = Array.isArray(data)
         ? data

@@ -60,7 +60,6 @@ const ApprovalLetterModal = ({
   useEffect(() => {
     if (activeSignatureTab === "draw") {
       initCanvas();
-      setHasInk(false);
     }
   }, [activeSignatureTab]);
 
@@ -298,7 +297,10 @@ const ApprovalLetterModal = ({
                   <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-700/60 bg-slate-800/60 p-1">
                     <button
                       type="button"
-                      onClick={() => setActiveSignatureTab("upload")}
+                      onClick={() => {
+                        setActiveSignatureTab("upload");
+                        setHasInk(false);
+                      }}
                       className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
                         activeSignatureTab === "upload"
                           ? "bg-blue-600 text-white"
@@ -312,7 +314,10 @@ const ApprovalLetterModal = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActiveSignatureTab("draw")}
+                      onClick={() => {
+                        setActiveSignatureTab("draw");
+                        setHasInk(false);
+                      }}
                       className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
                         activeSignatureTab === "draw"
                           ? "bg-blue-600 text-white"
@@ -414,7 +419,7 @@ const ApprovalLetterModal = ({
               <section className="space-y-3 flex-1 flex flex-col">
                 <div className="flex items-center gap-2 text-slate-300">
                   <MessageSquare size={16} className="text-blue-400" />
-                  <h3 className="text-sm font-bold">Approval Remarks</h3>
+                  <h3 className="text-sm font-bold">Additional Description</h3>
                 </div>
                 <div className="flex-1 flex flex-col">
                   <textarea

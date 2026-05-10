@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import DashboardLayout from "../layouts/DashboardLayout";
-import { LoginPage, RegisterPage } from "../../features/auth/pages";
+import { AdminCreateUserPage, LoginPage, RegisterPage } from "../../features/auth/pages";
 import { DashboardPage } from "../../features/dashboard/pages";
 import {
   EventsPage,
@@ -37,6 +37,7 @@ function AppRouter() {
           <Route path="approved-by-me" element={<ApprovedByMePage />} />
           <Route path="rejected-by-me" element={<RejectedByMePage />} />
           <Route path="club-create" element={<ClubCreatePage />} />
+          <Route path="users-create" element={<AdminCreateUserPage />} />
           <Route path="my-club" element={<ClubProfilePage />} />
         </Route>
 

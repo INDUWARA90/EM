@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2 } from "lucide-react";
-import { createClub } from "../../../shared/api/endpoints";
+import { createClub, getClubSecretaries } from "../../../shared/api/endpoints";
 
 function ClubCreatePage() {
   const navigate = useNavigate();
@@ -11,7 +11,32 @@ function ClubCreatePage() {
     secretaryRegNumber: "",
   });
   const [loading, setLoading] = useState(false);
+  const [secretaries, setSecretaries] = useState([]);
+  const [loadingSecretaries, setLoadingSecretaries] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadSecretaries = async () => {
+      setLoadingSecretaries(true);
+      try {
+        const data = await getClubSecretaries();
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+          ? data.data
+          : [];
+        setSecretaries(list);
+      } catch (err) {
+        console.error("Failed to load secretaries:", err);
+        setError("Failed to load secretary list.");
+        setSecretaries([]);
+      } finally {
+        setLoadingSecretaries(false);
+      }
+    };
+
+    loadSecretaries();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -81,16 +106,45 @@ function ClubCreatePage() {
             {/* Secretary Reg Number */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                Secretary Reg. Number
+                Secretary
               </label>
-              <input
+              <select
                 name="secretaryRegNumber"
                 value={form.secretaryRegNumber}
                 onChange={handleChange}
-                placeholder="e.g. ICTSC-SEC"
                 required
-                className="bg-slate-800 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
-              />
+                disabled={loadingSecretaries || secretaries.length === 0}
+                className="bg-slate-800 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500/50 transition-colors disabled:opacity-60"
+              >
+                <option value="">
+                  {loadingSecretaries ? "Loading secretaries..." : "Select secretary"}
+                </option>
+                {secretaries.map((secretary, index) => {
+                  const regNumber =
+                    secretary?.regNumber ||
+                    secretary?.registrationNumber ||
+                    secretary?.regNo ||
+                    "";
+                  const name =
+                    secretary?.name ||
+                    secretary?.username ||
+                    secretary?.fullName ||
+                    "Secretary";
+                  return (
+                    <option
+                      key={`${regNumber || "sec"}-${index}`}
+                      value={regNumber}
+                    >
+                      {regNumber ? `${name} (${regNumber})` : name}
+                    </option>
+                  );
+                })}
+              </select>
+              {!loadingSecretaries && secretaries.length === 0 && (
+                <p className="text-xs text-amber-400">
+                  No secretaries available to assign right now.
+                </p>
+              )}
             </div>
 
             {/* Error Message */}
@@ -112,7 +166,7 @@ function ClubCreatePage() {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || loadingSecretaries || secretaries.length === 0}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Building2 size={15} />

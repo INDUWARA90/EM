@@ -25,7 +25,7 @@ function BoardEditor({
       <div className="space-y-3">
         {members.map((member, index) => (
           <div
-            key={`${index}-${member.position}-${member.name}`}
+            key={member.id || index}
             className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 rounded-xl border border-slate-800 bg-slate-950/50 p-3"
           >
             <input

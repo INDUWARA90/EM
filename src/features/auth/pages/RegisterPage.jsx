@@ -8,12 +8,9 @@ function RegisterPage() {
     email: "",
     password: "",
     regNumber: "",
-    role: "lecturer",
   });
 
   const [loading, setLoading] = useState(false);
-
-  const roles = ["admin", "secretary", "lecturer", "dean", "user"];
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -28,8 +25,7 @@ function RegisterPage() {
         form.username,
         form.email,
         form.password,
-        form.regNumber,
-        form.role
+        form.regNumber
       );
       
       alert("User registered successfully!");
@@ -39,7 +35,6 @@ function RegisterPage() {
         email: "",
         password: "",
         regNumber: "",
-        role: "lecturer",
       });
     } catch (err) {
       alert(err.message || "Registration failed");
@@ -62,7 +57,7 @@ function RegisterPage() {
               Create Account
             </h2>
             <p className="text-slate-400 text-sm mt-2">
-              Join the university management system.
+              Join the university management system as a user account.
             </p>
           </div>
 
@@ -127,25 +122,6 @@ function RegisterPage() {
               className="w-full bg-white/5 border border-white/10 p-3 rounded-xl focus:bg-white/10 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-600"
               required
             />
-          </div>
-
-          {/* Role */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-400 ml-1 uppercase tracking-wider">
-              System Role
-            </label>
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              className="w-full bg-white/5 border border-white/10 p-3 rounded-xl focus:bg-white/10 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all cursor-pointer"
-            >
-              {roles.map((r) => (
-                <option key={r} value={r} className="bg-[#0f172a] text-white">
-                  {r}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Submit */}

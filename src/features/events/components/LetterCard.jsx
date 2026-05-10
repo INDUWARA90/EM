@@ -2,10 +2,25 @@ import React from "react";
 import PdfViewer from "../../../shared/ui/PdfViewer";
 import { buildServerFileUrl } from "../../../shared/api/fileUrl";
 import {
-  Calendar, Clock, MapPin, User, ShieldAlert, 
-  History, FileText, ExternalLink, ChevronRight,
-  Info, ArrowRight
+  Calendar,
+  Clock,
+  MapPin,
+  User,
+  ShieldAlert,
+  History,
+  FileText,
+  ExternalLink,
+  Info,
+  ArrowRight,
+  CheckCircle2,
+  CircleDot,
+  Circle,
 } from "lucide-react";
+import {
+  formatAppDate,
+  formatAppDateTime,
+  formatAppTime,
+} from "../../../shared/utils/dateTime";
 
 const LetterCard = ({ letter }) => {
   if (!letter) return null;
@@ -25,9 +40,19 @@ const LetterCard = ({ letter }) => {
     letter.conflictMessage ||
     "Place is already booked for this date/time.";
 
-  // Helper to format time strings (20:36:00 -> 20:36)
-  const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : "--:--";
+  const previousApprovers = Array.isArray(letter.previousApprovers)
+    ? [...letter.previousApprovers].sort((a, b) => (a.stepOrder || 0) - (b.stepOrder || 0))
+    : [];
+  const nextApprovers = Array.isArray(letter.nextApprovers)
+    ? [...letter.nextApprovers].sort((a, b) => (a.stepOrder || 0) - (b.stepOrder || 0))
+    : [];
 
+  const latestRemark =
+    letter.approvalNote ||
+    previousApprovers[previousApprovers.length - 1]?.remarks ||
+    letter.rejectionReason ||
+    null;
+  
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
       
@@ -63,8 +88,11 @@ const LetterCard = ({ letter }) => {
           {/* HEADER & GLOBAL STATUS */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-400 text-[10px] font-black uppercase border border-yellow-500/20 tracking-widest">
+              <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-300 text-[10px] font-black uppercase border border-blue-500/20 tracking-widest">
                 {letter.globalStatus}
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Letter #{letter.letterId}
               </span>
             </div>
 
@@ -91,7 +119,7 @@ const LetterCard = ({ letter }) => {
                       >
                         <p className="font-bold">{conflict.title || "Existing booking"}</p>
                         <p className="mt-1 text-slate-400">
-                          {conflict.eventDate} {formatTime(conflict.eventTime)} - {formatTime(conflict.endTime || conflict.eventEndTime)} at {conflict.placeName || conflict.eventPlace || "same place"}
+                          {conflict.eventDate} {formatAppTime(conflict.eventTime)} - {formatAppTime(conflict.endTime || conflict.eventEndTime)} at {conflict.placeName || conflict.eventPlace || "same place"}
                         </p>
                       </div>
                     ))}
@@ -101,23 +129,30 @@ const LetterCard = ({ letter }) => {
             )}
 
             <h2 className="text-4xl font-black tracking-tight leading-tight">
-              {letter.title}
+              {letter.title || "Event Approval Request"}
             </h2>
 
             <div className="flex items-start gap-3 bg-slate-800/40 p-4 rounded-2xl border border-slate-700/50">
               <Info size={18} className="text-cyan-400 shrink-0 mt-0.5" />
               <p className="text-slate-400 text-sm leading-relaxed italic">
-                "{letter.description}"
+                "{letter.description || "No description provided."}"
               </p>
             </div>
           </div>
 
-          {/* LOGISTICS GRID (Updated with End Time) */}
+          {latestRemark && (
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Approval Note</p>
+              <p className="mt-1 text-sm text-slate-200">{latestRemark}</p>
+            </div>
+          )}
+
+          {/* LOGISTICS GRID */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
               <p className="text-[9px] text-slate-500 font-black uppercase mb-1 tracking-widest">Event Date</p>
               <p className="text-sm font-bold flex items-center gap-2">
-                <Calendar size={14} className="text-cyan-400" /> {letter.eventDate}
+                <Calendar size={14} className="text-cyan-400" /> {formatAppDate(letter.eventDate)}
               </p>
             </div>
 
@@ -125,9 +160,9 @@ const LetterCard = ({ letter }) => {
               <p className="text-[9px] text-slate-500 font-black uppercase mb-1 tracking-widest">Schedule</p>
               <p className="text-sm font-bold flex items-center gap-1.5 truncate">
                 <Clock size={14} className="text-cyan-400 shrink-0" /> 
-                {formatTime(letter.eventTime)} 
+                {formatAppTime(letter.eventTime)} 
                 <ArrowRight size={10} className="text-slate-600" /> 
-                {formatTime(letter.eventEndTime)}
+                {formatAppTime(letter.eventEndTime)}
               </p>
             </div>
 
@@ -146,50 +181,100 @@ const LetterCard = ({ letter }) => {
              </div>
              <div>
                <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Initiated By</p>
-               <p className="text-sm font-bold text-slate-200">{letter.sender?.name} <span className="text-slate-500 font-medium ml-1">({letter.sender?.regNumber})</span></p>
+               <p className="text-sm font-bold text-slate-200">
+                 {letter.sender?.name || "Unknown"}
+                 <span className="text-slate-500 font-medium ml-1">
+                   ({letter.sender?.regNumber || "N/A"})
+                 </span>
+               </p>
              </div>
           </div>
 
-          {/* PIPELINE VISUALIZER */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Created</p>
+              <p className="mt-1 text-xs font-semibold text-slate-300">{formatAppDateTime(letter.createdAt)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Updated</p>
+              <p className="mt-1 text-xs font-semibold text-slate-300">{formatAppDateTime(letter.updatedAt)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Final Decision</p>
+              <p className="mt-1 text-xs font-semibold text-slate-300">{formatAppDateTime(letter.finalDecisionAt)}</p>
+            </div>
+          </div>
+
+          {/* APPROVAL FLOW */}
           <div className="space-y-4 pt-2">
             <div className="flex items-center gap-2 text-slate-500">
               <History size={14} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Pipeline Visualization</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Approval Flow</span>
             </div>
 
             <div className="flex flex-col gap-2">
-              {/* CURRENT */}
-              <div className="flex items-center justify-between p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl relative overflow-hidden group">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500" />
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center text-slate-900 shadow-lg shadow-cyan-500/20">
-                    <ShieldAlert size={16} />
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-cyan-500 font-black uppercase tracking-tighter">Current Action (Step {letter.currentApprover?.stepOrder})</p>
-                    <p className="text-sm font-bold text-slate-100">{letter.currentApprover?.name || "Permission permitted"}</p>
-                  </div>
-                </div>
-                {/* <div className="text-right">
-                  <span className="text-[10px] font-black text-cyan-500 bg-cyan-500/10 px-2 py-1 rounded uppercase">Pending</span>
-                </div> */}
-              </div>
-
-              {/* NEXT */}
-              {letter.nextApprovers?.map((n, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-slate-900/40 border border-slate-800 rounded-2xl opacity-60">
+              {previousApprovers.map((approver, index) => (
+                <div key={`${approver.stepOrder}-${approver.regNumber}-${index}`} className="flex items-center justify-between p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500 border border-slate-700">
-                      <ChevronRight size={16} />
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-300">
+                      <CheckCircle2 size={16} />
                     </div>
                     <div>
-                      <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter">Next (Step {n.stepOrder})</p>
-                      <p className="text-sm font-bold text-slate-400">{n.name}</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-emerald-400">
+                        Step {approver.stepOrder} Approved
+                      </p>
+                      <p className="text-sm font-semibold text-slate-100">
+                        {approver.name || "Approver"} ({approver.regNumber || "N/A"})
+                      </p>
+                      {approver.remarks && <p className="text-xs text-slate-300 mt-1">{approver.remarks}</p>}
                     </div>
                   </div>
-                  <span className="text-[10px] font-black text-slate-600 uppercase">Waiting</span>
+                  <p className="text-[11px] text-slate-400">{formatAppDateTime(approver.actedAt)}</p>
                 </div>
               ))}
+
+              {letter.currentApprover && (
+                <div className="flex items-center justify-between p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-300">
+                      <CircleDot size={16} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400">
+                        Current Approver (Step {letter.currentApprover?.stepOrder})
+                      </p>
+                      <p className="text-sm font-semibold text-slate-100">
+                        {letter.currentApprover?.name || "Pending"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {nextApprovers.map((approver, index) => (
+                <div key={`${approver.stepOrder}-${approver.regNumber}-${index}`} className="flex items-center justify-between p-4 bg-slate-900/40 border border-slate-800 rounded-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500">
+                      <Circle size={16} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                        Next Step {approver.stepOrder}
+                      </p>
+                      <p className="text-sm font-bold text-slate-300">
+                        {approver.name || "Upcoming approver"} ({approver.regNumber || "N/A"})
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-500 uppercase">Waiting</span>
+                </div>
+              ))}
+
+              {!letter.currentApprover && nextApprovers.length === 0 && (
+                <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-xs text-slate-400">
+                  No pending approvers.
+                </div>
+              )}
             </div>
           </div>
         </div>

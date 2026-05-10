@@ -17,7 +17,16 @@ const INITIAL_FORM = {
   description: "",
   executiveBoardJson: "[]",
 };
-const EMPTY_BOARD_MEMBER = { position: "", name: "" };
+
+const createBoardMember = (member = {}) => ({
+  id:
+    member.id ||
+    (typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+  position: member.position || "",
+  name: member.name || "",
+});
 
 function ClubProfilePage() {
   const storedUser = localStorage.getItem("user");
@@ -33,7 +42,7 @@ function ClubProfilePage() {
   const isSecretary = roles.includes("ROLE_SECRETARY");
 
   const [form, setForm] = useState(INITIAL_FORM);
-  const [boardMembers, setBoardMembers] = useState([{ ...EMPTY_BOARD_MEMBER }]);
+  const [boardMembers, setBoardMembers] = useState([createBoardMember()]);
   const [currentClub, setCurrentClub] = useState(null);
   const [bgImageFile, setBgImageFile] = useState(null);
   const [bgImagePreview, setBgImagePreview] = useState(null);
@@ -60,8 +69,8 @@ function ClubProfilePage() {
         setForm(normalizedClub);
         setBoardMembers(
           normalizedClub.executiveBoard.length
-            ? normalizedClub.executiveBoard
-            : [{ ...EMPTY_BOARD_MEMBER }]
+            ? normalizedClub.executiveBoard.map((member) => createBoardMember(member))
+            : [createBoardMember()]
         );
       } catch (err) {
         console.error("Failed to load club profile:", err);
@@ -104,7 +113,7 @@ function ClubProfilePage() {
   };
 
   const addBoardMember = () => {
-    setBoardMembers((prev) => [...prev, { ...EMPTY_BOARD_MEMBER }]);
+    setBoardMembers((prev) => [...prev, createBoardMember()]);
   };
 
   const removeBoardMember = (index) => {
@@ -155,7 +164,7 @@ function ClubProfilePage() {
       const normalizedClub = normalizeClubData(refreshed);
       setCurrentClub(normalizedClub);
       setForm(INITIAL_FORM);
-      setBoardMembers([{ ...EMPTY_BOARD_MEMBER }]);
+      setBoardMembers([createBoardMember()]);
       setBgImageFile(null);
       setBgImagePreview(null);
 

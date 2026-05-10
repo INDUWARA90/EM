@@ -4,7 +4,6 @@ function ApproversList({
   approvers, 
   roleMap, 
   onRoleChange, 
-  onOrderChange, 
   onRemove 
 }) {
   return (
@@ -16,7 +15,6 @@ function ApproversList({
           index={index}
           roleMap={roleMap}
           onRoleChange={onRoleChange}
-          onOrderChange={onOrderChange}
           onRemove={onRemove}
         />
       ))}

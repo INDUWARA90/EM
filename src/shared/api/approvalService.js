@@ -6,7 +6,11 @@ export const getLettersToApprove = () =>
 
 // Reject letter with reason
 export const rejectLetter = (id, reason) => 
-  apiClient.post(`/letter/${id}/reject`, { reason });
+  apiClient.post(`/letter/${id}/reject`, {
+    reason,
+    remarks: reason,
+    rejectionReason: reason,
+  });
 
 // Get current user's saved signature
 export const getMySignature = () =>

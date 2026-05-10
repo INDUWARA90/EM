@@ -10,7 +10,7 @@ import {
   CircleDot, 
   Circle 
 } from "lucide-react";
-import { format } from "date-fns";
+import { formatAppDate, formatAppTime } from "../../../shared/utils/dateTime";
 
 const ApprovalLetterSummary = ({ letter, onReject, onOpenApproveModal }) => {
   if (!letter) return null;
@@ -37,12 +37,12 @@ const ApprovalLetterSummary = ({ letter, onReject, onOpenApproveModal }) => {
         <InfoTile 
           icon={<Calendar size={14} />} 
           label="Event Date" 
-          value={letter.eventDate ? format(new Date(letter.eventDate), "MMM dd, yyyy") : "N/A"} 
+          value={formatAppDate(letter.eventDate)} 
         />
         <InfoTile 
           icon={<Clock size={14} />} 
           label="Timeline" 
-          value={`${letter.eventTime?.slice(0, 5)} - ${letter.eventEndTime?.slice(0, 5)}`} 
+          value={`${formatAppTime(letter.eventTime)} - ${formatAppTime(letter.eventEndTime)}`} 
         />
         <InfoTile 
           icon={<MapPin size={14} />} 

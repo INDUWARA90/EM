@@ -10,7 +10,8 @@ import {
   XCircle,
   Clock,
   LogOut,
-  Building2
+  Building2,
+  UserPlus
 } from "lucide-react";
 
 import { logoutUser } from "../api/endpoints";
@@ -34,8 +35,8 @@ function Sidebar() {
   const roles = user?.roles || [];
 
 
-  // Logic: Hide for Secretary
-  const hiddenRoles = ["ROLE_SECRETARY"];
+  // Logic: Hide Review & Approvals for Secretary, Admin, and User
+  const hiddenRoles = ["ROLE_SECRETARY", "ROLE_ADMIN", "ROLE_USER"];
   const showApprovalMenu = !roles.some((role) => hiddenRoles.includes(role));
 
   // logic for admin 
@@ -131,6 +132,14 @@ function Sidebar() {
               icon: <Building2 size={18} />,
             }}
             active={location.pathname === "/dashboard/club-create"}
+          />
+          <SidebarLink
+            item={{
+              name: "Create User",
+              path: "/dashboard/users-create",
+              icon: <UserPlus size={18} />,
+            }}
+            active={location.pathname === "/dashboard/users-create"}
           />
         </div>
       )}

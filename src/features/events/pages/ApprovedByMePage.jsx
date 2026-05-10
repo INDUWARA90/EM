@@ -16,8 +16,6 @@ function ApprovedByMePage() {
 
       const data = await getApprovedByMe();
 
-      console.log("Approved letters:", data);
-
       // handle array or single object safely
       const list = Array.isArray(data)
         ? data
