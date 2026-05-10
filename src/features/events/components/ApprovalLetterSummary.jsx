@@ -6,10 +6,11 @@ import {
   Clock, 
   MapPin, 
   User, 
-  Timer, 
-  Hash 
+  Check, 
+  CircleDot, 
+  Circle 
 } from "lucide-react";
-import { format } from "date-fns";
+import { formatAppDate, formatAppTime } from "../../../shared/utils/dateTime";
 
 const ApprovalLetterSummary = ({ letter, onReject, onOpenApproveModal }) => {
   if (!letter) return null;
@@ -36,12 +37,12 @@ const ApprovalLetterSummary = ({ letter, onReject, onOpenApproveModal }) => {
         <InfoTile 
           icon={<Calendar size={14} />} 
           label="Event Date" 
-          value={letter.eventDate ? format(new Date(letter.eventDate), "MMM dd, yyyy") : "N/A"} 
+          value={formatAppDate(letter.eventDate)} 
         />
         <InfoTile 
           icon={<Clock size={14} />} 
           label="Timeline" 
-          value={`${letter.eventTime?.slice(0, 5)} - ${letter.eventEndTime?.slice(0, 5)}`} 
+          value={`${formatAppTime(letter.eventTime)} - ${formatAppTime(letter.eventEndTime)}`} 
         />
         <InfoTile 
           icon={<MapPin size={14} />} 
@@ -58,19 +59,11 @@ const ApprovalLetterSummary = ({ letter, onReject, onOpenApproveModal }) => {
 
       {/* 3. TRACKING & STATUS */}
       <div className="space-y-3 mb-8">
-        <div className="p-4 bg-slate-800/40 border border-white/5 rounded-2xl flex items-start gap-4">
-          <div className="mt-1 p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
-            <Timer size={18} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Current Workflow Step</p>
-            <p className="text-sm font-bold text-slate-200">
-              Step {letter.currentApprover?.stepOrder}: {letter.currentApprover?.name}
-            </p>
-            <p className="text-[11px] text-slate-400">
-              Assigned: {letter.currentApprover?.assignedAt ? format(new Date(letter.currentApprover.assignedAt), "p, MMM dd") : "Pending"}
-            </p>
-          </div>
+        <div className="p-4 bg-slate-800/40 border border-white/5 rounded-2xl">
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">
+            Approval Progress
+          </p>
+          <WorkflowProgress letter={letter} />
         </div>
       </div>
 
@@ -107,5 +100,65 @@ const InfoTile = ({ icon, label, value, subValue }) => (
     {subValue && <p className="text-[10px] text-slate-500">{subValue}</p>}
   </div>
 );
+
+const WorkflowProgress = ({ letter }) => {
+  const previous = Array.isArray(letter.previousApprovers) ? [...letter.previousApprovers] : [];
+  previous.sort((a, b) => (a.stepOrder || 0) - (b.stepOrder || 0));
+
+  const next = Array.isArray(letter.nextApprovers) ? [...letter.nextApprovers] : [];
+  next.sort((a, b) => (a.stepOrder || 0) - (b.stepOrder || 0));
+
+  const stages = [
+    ...previous.map((approver) => ({ ...approver, state: "approved" })),
+    ...(letter.currentApprover ? [{ ...letter.currentApprover, state: "current" }] : []),
+    ...next.map((approver) => ({ ...approver, state: "waiting" })),
+  ];
+
+  if (stages.length === 0) {
+    return <p className="text-xs text-slate-400">No workflow steps available.</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto pb-1">
+      <div className="flex items-start gap-0 min-w-max pr-2">
+      {stages.map((stage, index) => {
+        const isLast = index === stages.length - 1;
+
+        return (
+          <div key={`${stage.stepOrder}-${stage.name}-${index}`} className="flex items-center">
+            <div className="min-w-[150px] max-w-[170px]">
+              <div className="flex items-center gap-2">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center border ${
+                stage.state === "approved"
+                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
+                  : stage.state === "current"
+                  ? "bg-blue-500/20 border-blue-500/40 text-blue-400"
+                  : "bg-slate-900 border-slate-700 text-slate-500"
+              }`}>
+                {stage.state === "approved" ? <Check size={13} /> : stage.state === "current" ? <CircleDot size={13} /> : <Circle size={13} />}
+              </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-200 truncate">
+                    Step {stage.stepOrder}: {stage.name}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500">
+                    {stage.state === "approved" ? "Approved" : stage.state === "current" ? "Current" : "Waiting"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {!isLast && (
+              <div className={`mx-2 w-10 h-0.5 ${
+                stage.state === "approved" ? "bg-emerald-500/40" : "bg-slate-700"
+              }`} />
+            )}
+          </div>
+        );
+      })}
+      </div>
+    </div>
+  );
+};
 
 export default ApprovalLetterSummary;

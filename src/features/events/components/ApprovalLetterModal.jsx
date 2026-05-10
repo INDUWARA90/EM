@@ -1,20 +1,194 @@
-import React from "react";
-import { X, PenTool, MessageSquare, ShieldCheck, AlertCircle, CalendarClock, MapPin } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  X,
+  PenTool,
+  MessageSquare,
+  ShieldCheck,
+  AlertCircle,
+  CalendarClock,
+  MapPin,
+  Upload,
+  Eraser,
+  Check,
+} from "lucide-react";
 import ApprovalPdfPreview from "./ApprovalPdfPreview";
 
 const ApprovalLetterModal = ({
   pdfUrl,
   remark,
   signatureUrl,
+  signatureSource,
   signaturePosition,
   bookingConflict,
   requiresSignature = true,
   loading,
   onRemarkChange,
+  onSignatureChange,
   onSelectSignaturePosition,
   onClose,
   onConfirm,
 }) => {
+  const canvasRef = useRef(null);
+  const drawingRef = useRef(false);
+  const fileInputRef = useRef(null);
+  const [hasInk, setHasInk] = useState(false);
+  const [activeSignatureTab, setActiveSignatureTab] = useState("upload");
+
+  const initCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ratio = window.devicePixelRatio || 1;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+
+    canvas.width = Math.max(1, Math.floor(width * ratio));
+    canvas.height = Math.max(1, Math.floor(height * ratio));
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.scale(ratio, ratio);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.2;
+  };
+
+  useEffect(() => {
+    if (activeSignatureTab === "draw") {
+      initCanvas();
+    }
+  }, [activeSignatureTab]);
+
+  const getCanvasPoint = (event) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  };
+
+  const startDraw = (event) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const point = getCanvasPoint(event);
+    if (!point) return;
+
+    drawingRef.current = true;
+    canvas.setPointerCapture?.(event.pointerId);
+    ctx.beginPath();
+    ctx.moveTo(point.x, point.y);
+    event.preventDefault();
+  };
+
+  const draw = (event) => {
+    if (!drawingRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const point = getCanvasPoint(event);
+    if (!point) return;
+
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+    setHasInk(true);
+    event.preventDefault();
+  };
+
+  const stopDraw = (event) => {
+    if (!drawingRef.current) return;
+    drawingRef.current = false;
+    event.preventDefault();
+  };
+
+  const clearDrawingPad = () => {
+    initCanvas();
+    setHasInk(false);
+  };
+
+  const useDrawingAsSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasInk) {
+      alert("Please draw your signature first.");
+      return;
+    }
+
+    const dataUrl = canvas.toDataURL("image/png");
+    onSignatureChange?.({ dataUrl, source: "draw" });
+  };
+
+  const triggerFilePicker = () => fileInputRef.current?.click();
+
+  const convertImageFileToPngDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const rawDataUrl = typeof reader.result === "string" ? reader.result : null;
+        if (!rawDataUrl) {
+          reject(new Error("Unable to read signature file"));
+          return;
+        }
+
+        const image = new Image();
+        image.onload = () => {
+          const tempCanvas = document.createElement("canvas");
+          tempCanvas.width = Math.max(1, image.naturalWidth || image.width);
+          tempCanvas.height = Math.max(1, image.naturalHeight || image.height);
+
+          const context = tempCanvas.getContext("2d");
+          if (!context) {
+            reject(new Error("Unable to process signature image"));
+            return;
+          }
+
+          context.drawImage(image, 0, 0);
+          resolve(tempCanvas.toDataURL("image/png"));
+        };
+        image.onerror = () => reject(new Error("Invalid signature image"));
+        image.src = rawDataUrl;
+      };
+
+      reader.onerror = () => reject(new Error("Unable to read signature file"));
+      reader.readAsDataURL(file);
+    });
+
+  const onUploadSignature = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const dataUrl = await convertImageFileToPngDataUrl(file);
+      onSignatureChange?.({ dataUrl, source: "upload" });
+    } catch (error) {
+      console.error(error);
+      alert("Could not process signature image. Please try another file.");
+    }
+
+    event.target.value = "";
+  };
+
+  const clearAttachedSignature = () => {
+    onSignatureChange?.({ dataUrl: null, source: null });
+  };
+
   const canPlaceSignature = requiresSignature && Boolean(signatureUrl);
   const conflicts = Array.isArray(bookingConflict?.conflicts)
     ? bookingConflict.conflicts
@@ -39,9 +213,6 @@ const ApprovalLetterModal = ({
             </div>
             <div>
               <h2 className="text-xl font-bold text-white tracking-tight">Authorize Document</h2>
-              <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">
-                {requiresSignature ? "Step 2: Sign & Finalize" : "Step 2: Finalize Approval"}
-              </p>
             </div>
           </div>
           <button 
@@ -68,6 +239,7 @@ const ApprovalLetterModal = ({
             <div className="rounded-2xl overflow-hidden border border-slate-800 shadow-inner">
               <ApprovalPdfPreview
                 pdfUrl={pdfUrl}
+                signatureImageUrl={canPlaceSignature ? signatureUrl : null}
                 signaturePosition={canPlaceSignature ? signaturePosition : null}
                 onSelectSignaturePosition={canPlaceSignature ? onSelectSignaturePosition : undefined}
                 heightClass="h-[550px]"
@@ -122,17 +294,122 @@ const ApprovalLetterModal = ({
                     <h3 className="text-sm font-bold">Your Digital Signature</h3>
                   </div>
 
+                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-700/60 bg-slate-800/60 p-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveSignatureTab("upload");
+                        setHasInk(false);
+                      }}
+                      className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                        activeSignatureTab === "upload"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-300 hover:bg-slate-700/70"
+                      }`}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <Upload size={13} />
+                        Upload
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveSignatureTab("draw");
+                        setHasInk(false);
+                      }}
+                      className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                        activeSignatureTab === "draw"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-300 hover:bg-slate-700/70"
+                      }`}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <PenTool size={13} />
+                        Draw
+                      </span>
+                    </button>
+                  </div>
+
+                  {activeSignatureTab === "upload" ? (
+                    <div className="space-y-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={onUploadSignature}
+                      />
+                      <button
+                        type="button"
+                        onClick={triggerFilePicker}
+                        className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-3 text-sm font-medium text-slate-100 hover:bg-slate-700 transition"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <Upload size={14} />
+                          Attach Signature Image
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="rounded-xl border border-slate-700 bg-slate-800 p-2">
+                        <canvas
+                          ref={canvasRef}
+                          className="h-36 w-full touch-none rounded-lg bg-white"
+                          onPointerDown={startDraw}
+                          onPointerMove={draw}
+                          onPointerUp={stopDraw}
+                          onPointerLeave={stopDraw}
+                          onPointerCancel={stopDraw}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={useDrawingAsSignature}
+                          className="flex-1 rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-500 transition"
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            <Check size={13} />
+                            Use Drawing
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={clearDrawingPad}
+                          className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition"
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            <Eraser size={13} />
+                            Clear Pad
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {signatureUrl ? (
-                    <div className="relative group">
-                      <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl blur opacity-10 group-hover:opacity-20 transition duration-1000"></div>
+                    <div className="space-y-2">
                       <div className="relative bg-white h-28 rounded-xl p-4 flex items-center justify-center border border-slate-700/50">
                         <img src={signatureUrl} alt="signature" className="max-h-full object-contain mix-blend-multiply" />
                       </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-emerald-400 font-semibold">
+                          Attached: {signatureSource === "draw" ? "Drawing" : "Uploaded image"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={clearAttachedSignature}
+                          className="text-slate-400 hover:text-white transition"
+                        >
+                          Clear attached
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="h-28 rounded-xl border-2 border-dashed border-slate-700 flex flex-col items-center justify-center text-center p-4">
-                      <AlertCircle className="text-red-400 mb-2" size={20} />
-                      <p className="text-xs text-red-400 font-medium">Signature not configured in settings.</p>
+                    <div className="h-14 rounded-xl border border-dashed border-slate-700 flex items-center justify-center text-xs text-slate-400">
+                      No signature attached yet
                     </div>
                   )}
                 </section>
@@ -142,7 +419,7 @@ const ApprovalLetterModal = ({
               <section className="space-y-3 flex-1 flex flex-col">
                 <div className="flex items-center gap-2 text-slate-300">
                   <MessageSquare size={16} className="text-blue-400" />
-                  <h3 className="text-sm font-bold">Approval Remarks</h3>
+                  <h3 className="text-sm font-bold">Additional Description</h3>
                 </div>
                 <div className="flex-1 flex flex-col">
                   <textarea

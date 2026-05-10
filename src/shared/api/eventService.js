@@ -22,3 +22,6 @@ export const getResponsiblePerson = (placeName) =>
   apiClient.get("/places/responsible-person", {
     params: { placeName },
   });
+
+export const getResponsiblePersons = () =>
+  apiClient.get("/auth/responsible-persons");

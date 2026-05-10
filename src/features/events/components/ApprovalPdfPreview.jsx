@@ -40,6 +40,7 @@ const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const ApprovalPdfPreview = ({
   pdfUrl,
+  signatureImageUrl,
   signaturePosition,
   onSelectSignaturePosition,
   heightClass = "h-[500px]",
@@ -116,10 +117,16 @@ const ApprovalPdfPreview = ({
 
     const pageRect = pageLayer.getBoundingClientRect();
     const scale = getPageScale(pageLayer);
-    const maxX = pageRect.width / scale - SIGNATURE_WIDTH;
-    const maxY = pageRect.height / scale - SIGNATURE_HEIGHT;
+    const pageWidth = pageRect.width / scale;
+    const pageHeight = pageRect.height / scale;
+    const maxX = pageWidth - SIGNATURE_WIDTH;
+    const maxY = pageHeight - SIGNATURE_HEIGHT;
     const x = clamp((event.clientX - pageRect.left) / scale, 0, maxX);
     const y = clamp((event.clientY - pageRect.top) / scale, 0, maxY);
+    const nx = pageWidth > 0 ? x / pageWidth : 0;
+    const ny = pageHeight > 0 ? y / pageHeight : 0;
+    const nw = pageWidth > 0 ? SIGNATURE_WIDTH / pageWidth : 0;
+    const nh = pageHeight > 0 ? SIGNATURE_HEIGHT / pageHeight : 0;
 
     onSelectSignaturePosition({
       pageIndex: getPageIndex(pageLayer),
@@ -127,6 +134,12 @@ const ApprovalPdfPreview = ({
       y: Math.round(y),
       width: SIGNATURE_WIDTH,
       height: SIGNATURE_HEIGHT,
+      pageWidth: Math.round(pageWidth),
+      pageHeight: Math.round(pageHeight),
+      nx: Number(nx.toFixed(4)),
+      ny: Number(ny.toFixed(4)),
+      nw: Number(nw.toFixed(4)),
+      nh: Number(nh.toFixed(4)),
       origin: "TOP_LEFT",
     });
   };
@@ -147,18 +160,24 @@ const ApprovalPdfPreview = ({
             position: "absolute",
             ...overlayStyle,
             border: "2px solid #3b82f6",
-            background: "rgba(59,130,246,0.15)",
+            background: signatureImageUrl ? "rgba(255,255,255,0.92)" : "rgba(59,130,246,0.15)",
             pointerEvents: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "10px",
-            color: "#60a5fa",
-            fontWeight: "bold",
+            overflow: "hidden",
             zIndex: 10,
           }}
         >
-          SIGN HERE
+          {signatureImageUrl ? (
+            <img
+              src={signatureImageUrl}
+              alt="Signature preview"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          ) : (
+            <span style={{ fontSize: "10px", color: "#60a5fa", fontWeight: "bold" }}>SIGN HERE</span>
+          )}
         </div>
       )}
     </div>

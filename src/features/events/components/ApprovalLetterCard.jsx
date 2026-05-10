@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { approveLetter, getMySignature, signApproveLetter } from "../../../shared/api/approvalService";
+import { approveLetter, signApproveLetter } from "../../../shared/api/approvalService";
 import { buildServerFileUrl } from "../../../shared/api/fileUrl";
 import { getResponsiblePerson } from "../../../shared/api/eventService";
 import ApprovalLetterModal from "./ApprovalLetterModal";
@@ -10,7 +10,10 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [remark, setRemark] = useState("");
   const [signaturePos, setSignaturePos] = useState(null);
-  const [userSignature, setUserSignature] = useState(null);
+  const [localSignature, setLocalSignature] = useState({
+    dataUrl: null,
+    source: null, // "upload" | "draw"
+  });
   const [isResponsibleApprover, setIsResponsibleApprover] = useState(false);
   const [bookingConflict, setBookingConflict] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -53,21 +56,13 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
         setIsResponsibleApprover(responsibleApprover);
 
         if (responsibleApprover) {
-          setUserSignature(null);
+          setLocalSignature({ dataUrl: null, source: null });
           setSignaturePos(null);
           return;
         }
       } catch (err) {
         console.error("Responsible approver check error:", err);
         setIsResponsibleApprover(false);
-      }
-
-      try {
-        const signature = await getMySignature();
-        setUserSignature(signature);
-      } catch (err) {
-        console.error("Signature load error:", err);
-        setUserSignature(null);
       }
     };
 
@@ -81,8 +76,8 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
       return;
     }
 
-    if (!isResponsibleApprover && !signatureUrl) {
-      alert("Please configure your signature before approving");
+    if (!isResponsibleApprover && !localSignature.dataUrl) {
+      alert("Please attach or draw your signature before approving");
       return;
     }
 
@@ -93,6 +88,7 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
       const data = isResponsibleApprover
         ? await approveLetter(letter.letterId, { remarks })
         : await signApproveLetter(letter.letterId, {
+            signatureImageDataUrl: localSignature.dataUrl,
             signature: signaturePos,
             remarks,
           });
@@ -104,6 +100,7 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
 
       setRemark("");
       setSignaturePos(null);
+      setLocalSignature({ dataUrl: null, source: null });
       setBookingConflict(null);
       setShowApproveModal(false);
 
@@ -126,7 +123,7 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
   if (!letter) return null;
 
   const pdfUrl = buildServerFileUrl(letter.pdfPath);
-  const signatureUrl = buildServerFileUrl(userSignature?.signatureImagePath);
+  const signatureUrl = localSignature.dataUrl;
   const openApproveModal = () => {
     setSignaturePos(null);
     setBookingConflict(null);
@@ -157,6 +154,8 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
           requiresSignature={!isResponsibleApprover}
           loading={loading}
           onRemarkChange={setRemark}
+          signatureSource={localSignature.source}
+          onSignatureChange={setLocalSignature}
           onSelectSignaturePosition={signatureUrl ? setSignaturePos : undefined}
           onClose={() => setShowApproveModal(false)}
           onConfirm={handleFinalApprove}

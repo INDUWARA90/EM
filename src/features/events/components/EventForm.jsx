@@ -1,25 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import ApproversSection from "./ApproversSection";
-import { getPlaces, getResponsiblePerson } from "../../../shared/api/eventService";
-import { Calendar, Clock, MapPin, AlignLeft, FileText, Send, Loader2, AlertCircle } from "lucide-react";
+import { getResponsiblePerson } from "../../../shared/api/eventService";
+import { Calendar, Clock, MapPin, AlignLeft, FileText, Send, Loader2 } from "lucide-react";
 
-function EventForm({ values, setValues, setFile, roleMap, onSubmit }) {
-  const [places, setPlaces] = useState([]);
+function EventForm({ values, setValues, setFile, roleMap, places = [], onSubmit }) {
   const [loadingApprovers, setLoadingApprovers] = useState(false);
   const fileInputRef = useRef(null);
-
-  // Load Places on mount
-  useEffect(() => {
-    const loadPlaces = async () => {
-      try {
-        const res = await getPlaces();
-        setPlaces(res?.data || res || []);
-      } catch (err) {
-        console.error("Places load error:", err);
-      }
-    };
-    loadPlaces();
-  }, []);
 
   // Reset file input if eventName is cleared
   useEffect(() => {
@@ -66,7 +52,9 @@ function EventForm({ values, setValues, setFile, roleMap, onSubmit }) {
               {
                 order: 1,
                 role: data.responsiblePersonName,
+                userId: data.responsiblePersonRegNumber,
                 name: data.responsiblePersonRegNumber,
+                displayName: data.responsiblePersonName,
               },
             ],
           };

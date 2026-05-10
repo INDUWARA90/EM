@@ -94,7 +94,7 @@ function ClubDetailsPage() {
                         Official Club
                       </span>
                     </div>
-                    <p className="text-slate-500 font-medium mt-1">Reg: {club.secretaryRegNumber}</p>
+                    <p className="text-slate-500 font-medium mt-6"></p>
                   </div>
                 </div>
               </div>
@@ -142,20 +142,6 @@ function ClubDetailsPage() {
 
               {/* Sidebar Column */}
               <div className="space-y-6">
-                {/* Secretary Info */}
-                <div className="p-6 rounded-3xl border border-slate-800 bg-slate-900/60">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Administration</p>
-                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-950/50 border border-slate-800">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500">
-                      <UserRound size={24} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-bold">Secretary Reg</p>
-                      <p className="text-sm font-bold text-white tracking-tight">{club.secretaryRegNumber}</p>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Executive Board Placeholder */}
                 <ClubExecutiveBoardPanel members={executiveBoardMembers} />
               </div>

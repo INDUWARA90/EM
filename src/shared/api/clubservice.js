@@ -5,6 +5,9 @@ export const createClub = async (payload) => {
   return apiClient.post("/admin/clubs", payload);
 };
 
+export const getClubSecretaries = () =>
+  apiClient.get("/admin/clubs/secretaries");
+
 export const getClubs = () =>
   apiClient.get('/clubs');
 
