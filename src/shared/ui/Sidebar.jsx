@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
+  House,
   MapPin,
   PlusCircle,
   CalendarDays,
@@ -11,105 +11,149 @@ import {
   Clock,
   LogOut,
   Building2,
-  UserPlus
+  UserPlus,
 } from "lucide-react";
 
 import { logoutUser } from "../api/endpoints";
+import { hasRole } from "../utils/roles";
+
+const readStoredUser = () => {
+  const storedUser = localStorage.getItem("user");
+  if (!storedUser) return null;
+
+  try {
+    return JSON.parse(storedUser);
+  } catch {
+    localStorage.removeItem("user");
+    return null;
+  }
+};
 
 function Sidebar() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem("user");
-      }
-    }
-  }, []);
+  const [user, setUser] = useState(() => readStoredUser());
 
   const roles = user?.roles || [];
+  const isAdmin = hasRole(roles, "ROLE_ADMIN");
+  const isSecretary = hasRole(roles, "ROLE_SECRETARY");
+  const isApprover = !["ROLE_SECRETARY", "ROLE_ADMIN", "ROLE_USER"].some((role) =>
+    hasRole(roles, role)
+  );
 
+  const sections = useMemo(() => {
+    const baseSections = [
+      {
+        title: "Public",
+        items: [
+          {
+            name: "Landing",
+            path: "/",
+            icon: <House size={18} />,
+            end: true,
+          },
+        ],
+      },
+      {
+        title: "Workspace",
+        items: [
+          {
+            name: "Create Event",
+            path: "/dashboard/events",
+            icon: <PlusCircle size={18} />,
+          },
+          {
+            name: "Letter Box",
+            path: "/dashboard/my-letters",
+            icon: <Mail size={18} />,
+          },
+          {
+            name: "Schedule",
+            path: "/dashboard/calendar",
+            icon: <CalendarDays size={18} />,
+          },
+          {
+            name: "Facility Resources",
+            path: "/dashboard/places",
+            icon: <MapPin size={18} />,
+          },
+        ],
+      },
+    ];
 
-  // Logic: Hide Review & Approvals for Secretary, Admin, and User
-  const hiddenRoles = ["ROLE_SECRETARY", "ROLE_ADMIN", "ROLE_USER"];
-  const showApprovalMenu = !roles.some((role) => hiddenRoles.includes(role));
-
-  // logic for admin 
-  const isAdmin = roles.includes("ROLE_ADMIN");
-  const isSecretary = roles.includes("ROLE_SECRETARY");
-
-  const menuItems = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: <LayoutDashboard size={18} />,
-    },
-    {
-      name: "Facility Resources",
-      path: "/dashboard/places",
-      icon: <MapPin size={18} />,
-    },
-    {
-      name: "Create Event",
-      path: "/dashboard/events",
-      icon: <PlusCircle size={18} />,
-    },
-    {
-      name: "Schedule",
-      path: "/dashboard/calendar",
-      icon: <CalendarDays size={18} />,
-    },
-    {
-      name: "Letter Box",
-      path: "/dashboard/my-letters",
-      icon: <Mail size={18} />,
-    },
-  ];
-
-  const approvalItems = [
-    {
-      name: "To Be Approved",
-      path: "/dashboard/to-approve",
-      icon: <Clock size={18} />,
-    },
-    {
-      name: "Approved By Me",
-      path: "/dashboard/approved-by-me",
-      icon: <CheckCircle2 size={18} />,
-    },
-    {
-      name: "Rejected By Me",
-      path: "/dashboard/rejected-by-me",
-      icon: <XCircle size={18} />,
+    if (isApprover) {
+      baseSections.push({
+        title: "Review & Approvals",
+        items: [
+          {
+            name: "To Be Approved",
+            path: "/dashboard/to-approve",
+            icon: <Clock size={18} />,
+          },
+          {
+            name: "Approved By Me",
+            path: "/dashboard/approved-by-me",
+            icon: <CheckCircle2 size={18} />,
+          },
+          {
+            name: "Rejected By Me",
+            path: "/dashboard/rejected-by-me",
+            icon: <XCircle size={18} />,
+          },
+        ],
+      });
     }
-  ];
 
-  // ✅ LOGOUT FUNCTION
+    const managementItems = [
+      ...(isSecretary
+        ? [
+            {
+              name: "My Club",
+              path: "/dashboard/my-club",
+              icon: <Building2 size={18} />,
+            },
+          ]
+        : []),
+      ...(isAdmin
+        ? [
+            {
+              name: "Club Create",
+              path: "/dashboard/club-create",
+              icon: <Building2 size={18} />,
+            },
+            {
+              name: "Create User",
+              path: "/dashboard/users-create",
+              icon: <UserPlus size={18} />,
+            },
+          ]
+        : []),
+    ];
+
+    if (managementItems.length > 0) {
+      baseSections.push({
+        title: "Management",
+        items: managementItems,
+      });
+    }
+
+    return baseSections;
+  }, [isAdmin, isApprover, isSecretary]);
+
   const handleLogout = async () => {
     try {
-      await logoutUser(); // API call
+      await logoutUser();
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {
-      // clear frontend state
       localStorage.removeItem("user");
-      localStorage.removeItem("token"); // if used
+      localStorage.removeItem("token");
       setUser(null);
-
-      // redirect to login
       navigate("/login");
     }
   };
 
   return (
     <div className="w-72 bg-slate-900 min-h-screen flex flex-col border-r border-slate-800/50">
-
-      {/* Brand Header */}
       <div className="p-8 mb-4">
         <h2 className="text-xl font-black text-white tracking-tight uppercase italic">
           Event<span className="text-emerald-500">Flow</span>
@@ -119,75 +163,14 @@ function Sidebar() {
         </p>
       </div>
 
-
-      {isAdmin && (
-        <div className="mt-8 pt-4 border-t border-slate-800/50 ml-4">
-          <p className="px-4 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">
-            Administration
-          </p>
-          <SidebarLink
-            item={{
-              name: "Club Create",
-              path: "/dashboard/club-create",
-              icon: <Building2 size={18} />,
-            }}
-            active={location.pathname === "/dashboard/club-create"}
-          />
-          <SidebarLink
-            item={{
-              name: "Create User",
-              path: "/dashboard/users-create",
-              icon: <UserPlus size={18} />,
-            }}
-            active={location.pathname === "/dashboard/users-create"}
-          />
-        </div>
-      )}
-
-      {isSecretary && (
-        <div className="mt-8 pt-4 border-t border-slate-800/50 ml-4">
-          <p className="px-4 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">
-            Club Management
-          </p>
-          <SidebarLink
-            item={{
-              name: "My Club",
-              path: "/dashboard/my-club",
-              icon: <Building2 size={18} />,
-            }}
-            active={location.pathname === "/dashboard/my-club"}
-          />
-        </div>
-      )}
-
-
-      {/* Navigation */}
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-        <p className="px-4 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">
-          Main Menu
-        </p>
-
-        {menuItems.map((item) => (
-          <SidebarLink key={item.path} item={item} active={location.pathname === item.path} />
+      <nav className="flex-1 px-4 space-y-6 overflow-y-auto">
+        {sections.map((section) => (
+          <SidebarSection key={section.title} title={section.title} items={section.items} />
         ))}
-
-        {showApprovalMenu && (
-          <div className="mt-8 pt-4 border-t border-slate-800/50">
-            <p className="px-4 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">
-              Review & Approvals
-            </p>
-            {approvalItems.map((item) => (
-              <SidebarLink key={item.path} item={item} active={location.pathname === item.path} />
-            ))}
-          </div>
-        )}
-
       </nav>
 
-      {/* User Profile Section */}
       <div className="p-4 border-t border-slate-800 mt-auto bg-slate-950/30">
         <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-800/40 border border-white/5">
-
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold shadow-lg">
             {user?.username?.charAt(0) || "U"}
           </div>
@@ -201,42 +184,61 @@ function Sidebar() {
             </p>
           </div>
 
-          {/* ✅ LOGOUT BUTTON */}
           <button
             onClick={handleLogout}
             className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+            aria-label="Logout"
           >
             <LogOut size={16} />
           </button>
-
         </div>
       </div>
     </div>
   );
 }
 
-// Sidebar Link Component
-const SidebarLink = ({ item, active }) => (
-  <Link
-    to={item.path}
-    className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${active
-      ? "bg-emerald-600/10 text-emerald-500 border border-emerald-500/20"
-      : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
-      }`}
-  >
-    <div className="flex items-center gap-3">
-      <span className={`${active ? "text-emerald-500" : "text-slate-500 group-hover:text-slate-300"} transition-colors`}>
-        {item.icon}
-      </span>
-      <span className="text-sm font-bold tracking-tight">
-        {item.name}
-      </span>
+const SidebarSection = ({ title, items }) => (
+  <div className="space-y-2">
+    <p className="px-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">{title}</p>
+    <div className="space-y-1">
+      {items.map((item) => (
+        <SidebarLink key={item.path} item={item} />
+      ))}
     </div>
+  </div>
+);
 
-    {active && (
-      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+const SidebarLink = ({ item }) => (
+  <NavLink
+    to={item.path}
+    end={item.end}
+    className={({ isActive }) =>
+      `flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${
+        isActive
+          ? "bg-emerald-600/10 text-emerald-500 border border-emerald-500/20"
+          : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+      }`
+    }
+  >
+    {({ isActive }) => (
+      <>
+        <div className="flex items-center gap-3">
+          <span
+            className={`${
+              isActive ? "text-emerald-500" : "text-slate-500 group-hover:text-slate-300"
+            } transition-colors`}
+          >
+            {item.icon}
+          </span>
+          <span className="text-sm font-bold tracking-tight">{item.name}</span>
+        </div>
+
+        {isActive && (
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+        )}
+      </>
     )}
-  </Link>
+  </NavLink>
 );
 
 export default Sidebar;

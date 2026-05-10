@@ -1,8 +1,7 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import { AdminCreateUserPage, LoginPage, RegisterPage } from "../../features/auth/pages";
-import { DashboardPage } from "../../features/dashboard/pages";
 import {
   EventsPage,
   CalendarPage,
@@ -16,19 +15,58 @@ import { NotFoundPage } from "../../features/not-found/pages";
 import { ClubCreatePage, ClubDetailsPage, ClubProfilePage } from "../../features/club/pages";
 import { LandingPage } from "../../features/landing/pages";
 
+const hasSession = () => {
+  try {
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+    return Boolean(token || user);
+  } catch {
+    return false;
+  }
+};
+
+function RequireAuth({ children }) {
+  return hasSession() ? children : <Navigate to="/login" replace />;
+}
+
+function RedirectIfAuth({ children }) {
+  return hasSession() ? <Navigate to="/dashboard" replace /> : children;
+}
+
 function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Auth */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/login"
+          element={(
+            <RedirectIfAuth>
+              <LoginPage />
+            </RedirectIfAuth>
+          )}
+        />
+        <Route
+          path="/register"
+          element={(
+            <RedirectIfAuth>
+              <RegisterPage />
+            </RedirectIfAuth>
+          )}
+        />
         <Route path="/" element={<LandingPage />} />
         <Route path="/club/:clubId" element={<ClubDetailsPage />} />
 
         {/* Dashboard / Main */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<DashboardPage />} />
+        <Route
+          path="/dashboard"
+          element={(
+            <RequireAuth>
+              <DashboardLayout />
+            </RequireAuth>
+          )}
+        >
+          <Route index element={<Navigate to="events" replace />} />
           <Route path="events" element={<EventsPage />} />
           <Route path="places" element={<PlacesPage />} />
           <Route path="calendar" element={<CalendarPage />} />
@@ -39,6 +77,7 @@ function AppRouter() {
           <Route path="club-create" element={<ClubCreatePage />} />
           <Route path="users-create" element={<AdminCreateUserPage />} />
           <Route path="my-club" element={<ClubProfilePage />} />
+          <Route path="*" element={<Navigate to="events" replace />} />
         </Route>
 
         {/* 404 */}

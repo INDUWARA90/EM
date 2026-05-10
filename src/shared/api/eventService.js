@@ -10,9 +10,13 @@ export const createEvent = (formData) =>
     headers: { 'Content-Type': 'multipart/form-data' }
   });
 
-// Get calendar events
-export const getCalendarEvents = () => 
-  apiClient.get('/calendar/events');
+// Dashboard calendar (inside app)
+export const getDashboardCalendarBookings = () =>
+  apiClient.get("/calendar/bookings");
+
+// Public calendar (outside dashboard)
+export const getPublicCalendarEvents = () =>
+  apiClient.get("/calendar/event");
 
 // Get my letters
 export const getMyLetters = () => 

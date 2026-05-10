@@ -10,6 +10,7 @@ import {
   FormField,
 } from "../components";
 import { normalizeClubData } from "../lib/clubUtils";
+import { hasRole } from "../../../shared/utils/roles";
 
 const INITIAL_FORM = {
   vision: "",
@@ -39,7 +40,7 @@ function ClubProfilePage() {
     }
   }
   const roles = parsedUser?.roles || [];
-  const isSecretary = roles.includes("ROLE_SECRETARY");
+  const isSecretary = hasRole(roles, "ROLE_SECRETARY");
 
   const [form, setForm] = useState(INITIAL_FORM);
   const [boardMembers, setBoardMembers] = useState([createBoardMember()]);

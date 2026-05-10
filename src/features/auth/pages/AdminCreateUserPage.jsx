@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { UserPlus } from "lucide-react";
 import { registerByAdmin } from "../../../shared/api/authService";
+import { hasRole } from "../../../shared/utils/roles";
 
 const ROLE_OPTIONS = ["user", "lecturer", "dean", "secretary", "admin"];
 
@@ -23,7 +24,7 @@ function AdminCreateUserPage() {
     try {
       const parsed = JSON.parse(raw);
       const roles = parsed?.roles || [];
-      return Array.isArray(roles) && roles.includes("ROLE_ADMIN");
+      return hasRole(roles, "ROLE_ADMIN");
     } catch {
       return false;
     }
@@ -43,6 +44,8 @@ function AdminCreateUserPage() {
       role: "user",
     });
   };
+
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();

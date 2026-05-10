@@ -28,5 +28,5 @@ export const registerByAdmin = (username, email, password, regNumber, role) =>
   });
 
 export const logoutUser = async () => {
-   apiClient.post("/api/auth/signout");
+  return apiClient.post("/auth/signout");
 };

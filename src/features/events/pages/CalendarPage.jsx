@@ -12,7 +12,7 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { getCalendarEvents } from "../../../shared/api/eventService";
+import { getDashboardCalendarBookings } from "../../../shared/api/eventService";
 import { parseAppDateTime } from "../../../shared/utils/dateTime";
 
 const locales = { "en-US": enUS };
@@ -27,7 +27,6 @@ const localizer = dateFnsLocalizer({
 const STATUS_GROUPS = {
   approved: "approved",
   pending: "pending",
-  "not-approved": "not-approved",
 };
 
 const STATUS_THEME = {
@@ -44,13 +43,6 @@ const STATUS_THEME = {
     chip: "border-amber-500/40 text-amber-300 bg-amber-500/10",
     className:
       "!bg-amber-500/10 !border-l-2 !border-l-amber-400 !border-y-0 !border-r-0 !text-amber-100 !text-[11px] !font-medium !px-2 !py-1 !shadow-sm",
-  },
-  "not-approved": {
-    label: "Not Approved",
-    dot: "bg-rose-400",
-    chip: "border-rose-500/40 text-rose-300 bg-rose-500/10",
-    className:
-      "!bg-rose-500/10 !border-l-2 !border-l-rose-400 !border-y-0 !border-r-0 !text-rose-100 !text-[11px] !font-medium !px-2 !py-1 !shadow-sm",
   },
 };
 
@@ -69,13 +61,6 @@ const getStatusGroup = (event) => {
   const status = normalizeStatus(event);
 
   if (status.includes("APPROVED")) return STATUS_GROUPS.approved;
-  if (
-    status.includes("REJECTED") ||
-    status.includes("DECLINED") ||
-    status.includes("NOT_APPROVED")
-  ) {
-    return STATUS_GROUPS["not-approved"];
-  }
   return STATUS_GROUPS.pending;
 };
 
@@ -90,6 +75,15 @@ const mapCalendarEvent = (rawEvent) => {
 
   const end = parsedEnd || new Date(start.getTime() + 60 * 60 * 1000);
   const status = normalizeStatus(rawEvent) || "PENDING";
+
+  if (
+    status.includes("REJECTED") ||
+    status.includes("DECLINED") ||
+    status.includes("NOT_APPROVED")
+  ) {
+    return null;
+  }
+
   const group = getStatusGroup({ status });
 
   return {
@@ -104,7 +98,9 @@ const mapCalendarEvent = (rawEvent) => {
   };
 };
 
-function CalendarPage() {
+function CalendarPage({ source = "dashboard" }) {
+  const isPublicView = source === "public";
+  const visibleStatusGroups = isPublicView ? [STATUS_GROUPS.approved] : Object.keys(STATUS_THEME);
   const [events, setEvents] = useState([]);
   const [selected, setSelected] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -113,11 +109,17 @@ function CalendarPage() {
   const [query, setQuery] = useState("");
   const [view, setView] = useState("month");
   const [date, setDate] = useState(new Date());
-  const [activeStatus, setActiveStatus] = useState({
+  const [activeStatus, setActiveStatus] = useState(() => ({
     approved: true,
-    pending: true,
-    "not-approved": true,
-  });
+    pending: !isPublicView,
+  }));
+
+  useEffect(() => {
+    setActiveStatus({
+      approved: true,
+      pending: !isPublicView,
+    });
+  }, [isPublicView]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -129,9 +131,12 @@ function CalendarPage() {
     setError(null);
 
     try {
-      const data = await getCalendarEvents();
+      const data = await getDashboardCalendarBookings();
       const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
-      const mapped = list.map(mapCalendarEvent).filter(Boolean);
+      const mapped = list
+        .map(mapCalendarEvent)
+        .filter(Boolean)
+        .filter((event) => (isPublicView ? event.statusGroup === STATUS_GROUPS.approved : true));
       setEvents(mapped);
     } catch (err) {
       console.error("Calendar fetch failed:", err);
@@ -140,7 +145,7 @@ function CalendarPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isPublicView]);
 
   useEffect(() => {
     fetchEvents();
@@ -150,7 +155,6 @@ function CalendarPage() {
     const summary = {
       approved: 0,
       pending: 0,
-      "not-approved": 0,
     };
 
     events.forEach((event) => {
@@ -181,8 +185,7 @@ function CalendarPage() {
     setQuery("");
     setActiveStatus({
       approved: true,
-      pending: true,
-      "not-approved": true,
+      pending: !isPublicView,
     });
   };
 
@@ -199,7 +202,9 @@ function CalendarPage() {
               Event Calendar
             </h1>
             <p className="text-sm text-slate-400">
-              Track approved, pending, and not-approved events in one place.
+              {isPublicView
+                ? "Track approved events in one place."
+                : "Track approved and pending events in one place."}
             </p>
           </div>
 
@@ -235,7 +240,7 @@ function CalendarPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {Object.keys(STATUS_THEME).map((statusGroup) => {
+            {visibleStatusGroups.map((statusGroup) => {
               const isActive = activeStatus[statusGroup];
               const style = STATUS_THEME[statusGroup];
 

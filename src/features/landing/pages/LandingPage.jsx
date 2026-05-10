@@ -70,7 +70,7 @@ function LandingPage() {
       <section className="border-b border-slate-800 bg-slate-900">
         <div className="max-w-7xl mx-auto px-6 py-16 md:py-20">
           <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white">
-            University Clubs Directory
+            University Clubs
           </h1>
           <p className="mt-4 text-slate-400 max-w-2xl">
             Discover active clubs, check their details, and sign in to submit and manage event requests.
@@ -131,7 +131,7 @@ function LandingPage() {
       </main>
 
       <section className="border-t border-slate-800">
-        <CalendarPage />
+        <CalendarPage source="public" />
       </section>
 
       <footer className="border-t border-slate-800 bg-slate-950">

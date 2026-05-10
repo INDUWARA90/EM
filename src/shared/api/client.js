@@ -12,6 +12,15 @@ const getCookieValue = (name) => {
   return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
 };
 
+const getStoredToken = () => {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem("token");
+  } catch {
+    return null;
+  }
+};
+
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -24,11 +33,19 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   const csrfToken = getCookieValue("XSRF-TOKEN");
+  const token = getStoredToken();
 
   if (csrfToken) {
     config.headers = config.headers ?? {};
     if (!config.headers["X-XSRF-TOKEN"]) {
       config.headers["X-XSRF-TOKEN"] = csrfToken;
+    }
+  }
+
+  if (token) {
+    config.headers = config.headers ?? {};
+    if (!config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
   }
 
