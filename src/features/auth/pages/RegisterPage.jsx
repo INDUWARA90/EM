@@ -24,7 +24,7 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      const data = await register(
+      await register(
         form.username,
         form.email,
         form.password,

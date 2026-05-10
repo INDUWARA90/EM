@@ -25,7 +25,7 @@ function Sidebar() {
     if (storedUser) {
       try {
         setUser(JSON.parse(storedUser));
-      } catch (err) {
+      } catch {
         localStorage.removeItem("user");
       }
     }
@@ -40,6 +40,7 @@ function Sidebar() {
 
   // logic for admin 
   const isAdmin = roles.includes("ROLE_ADMIN");
+  const isSecretary = roles.includes("ROLE_SECRETARY");
 
   const menuItems = [
     {
@@ -130,6 +131,22 @@ function Sidebar() {
               icon: <Building2 size={18} />,
             }}
             active={location.pathname === "/dashboard/club-create"}
+          />
+        </div>
+      )}
+
+      {isSecretary && (
+        <div className="mt-8 pt-4 border-t border-slate-800/50 ml-4">
+          <p className="px-4 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">
+            Club Management
+          </p>
+          <SidebarLink
+            item={{
+              name: "My Club",
+              path: "/dashboard/my-club",
+              icon: <Building2 size={18} />,
+            }}
+            active={location.pathname === "/dashboard/my-club"}
           />
         </div>
       )}

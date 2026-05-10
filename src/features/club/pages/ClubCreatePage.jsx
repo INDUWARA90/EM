@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, ArrowLeft } from "lucide-react";
-import { createClub } from "../../shared/api/endpoints";
+import { Building2 } from "lucide-react";
+import { createClub } from "../../../shared/api/endpoints";
 
-function ClubCreate() {
+function ClubCreatePage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -126,4 +126,4 @@ function ClubCreate() {
   );
 }
 
-export default ClubCreate;
+export default ClubCreatePage;
