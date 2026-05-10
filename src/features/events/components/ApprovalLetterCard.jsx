@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { approveLetter, getMySignature, signApproveLetter } from "../../../api/approvalService";
-import { buildServerFileUrl } from "../../../api/fileUrl";
-import { getResponsiblePerson } from "../../../api/eventService";
+import { approveLetter, getMySignature, signApproveLetter } from "../../../shared/api/approvalService";
+import { buildServerFileUrl } from "../../../shared/api/fileUrl";
+import { getResponsiblePerson } from "../../../shared/api/eventService";
 import ApprovalLetterModal from "./ApprovalLetterModal";
 import ApprovalLetterSummary from "./ApprovalLetterSummary";
 import ApprovalPdfPreview from "./ApprovalPdfPreview";
@@ -12,6 +12,7 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
   const [signaturePos, setSignaturePos] = useState(null);
   const [userSignature, setUserSignature] = useState(null);
   const [isResponsibleApprover, setIsResponsibleApprover] = useState(false);
+  const [bookingConflict, setBookingConflict] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const isSameApprover = (currentApprover, responsiblePerson) => {
@@ -38,6 +39,9 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
   useEffect(() => {
     const fetchApprovalContext = async () => {
       if (!letter) return;
+
+      setSignaturePos(null);
+      setBookingConflict(null);
 
       try {
         const responsiblePerson = await getResponsiblePerson(letter.eventPlace);
@@ -70,24 +74,15 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
     fetchApprovalContext();
   }, [letter]);
 
-  // ================= CLICK POSITION =================
-  const handlePdfClick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-
-    setSignaturePos({
-      pageIndex: 0,
-      x: Math.round(e.clientX - rect.left),
-      y: Math.round(e.clientY - rect.top),
-      width: 150,
-      height: 50,
-      origin: "TOP_LEFT",
-    });
-  };
-
   // ================= APPROVE =================
   const handleFinalApprove = async () => {
     if (!isResponsibleApprover && !signaturePos) {
       alert("Please select signature position");
+      return;
+    }
+
+    if (!isResponsibleApprover && !signatureUrl) {
+      alert("Please configure your signature before approving");
       return;
     }
 
@@ -102,13 +97,26 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
             remarks,
           });
 
+      if (data?.conflict) {
+        setBookingConflict(data);
+        return;
+      }
+
       setRemark("");
       setSignaturePos(null);
+      setBookingConflict(null);
       setShowApproveModal(false);
 
       if (onApprove) onApprove(letter.letterId, data);
     } catch (err) {
       console.error(err);
+      const conflictData = err?.response?.data;
+
+      if (conflictData?.conflict) {
+        setBookingConflict(conflictData);
+        return;
+      }
+
       alert("Approval failed");
     } finally {
       setLoading(false);
@@ -119,21 +127,22 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
 
   const pdfUrl = buildServerFileUrl(letter.pdfPath);
   const signatureUrl = buildServerFileUrl(userSignature?.signatureImagePath);
+  const openApproveModal = () => {
+    setSignaturePos(null);
+    setBookingConflict(null);
+    setShowApproveModal(true);
+  };
 
   return (
     <>
       {/* ================= CARD ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-900/50 border border-white/10 rounded-[2.5rem] p-8">
-        <ApprovalPdfPreview
-          pdfUrl={pdfUrl}
-          signaturePosition={signaturePos}
-          onSelectSignaturePosition={handlePdfClick}
-        />
+        <ApprovalPdfPreview pdfUrl={pdfUrl} />
 
         <ApprovalLetterSummary
           letter={letter}
           onReject={onReject}
-          onOpenApproveModal={() => setShowApproveModal(true)}
+          onOpenApproveModal={openApproveModal}
         />
       </div>
 
@@ -144,10 +153,11 @@ const ApprovalLetterCard = ({ letter, onReject, onApprove }) => {
           remark={remark}
           signatureUrl={signatureUrl}
           signaturePosition={signaturePos}
+          bookingConflict={bookingConflict}
           requiresSignature={!isResponsibleApprover}
           loading={loading}
           onRemarkChange={setRemark}
-          onSelectSignaturePosition={handlePdfClick}
+          onSelectSignaturePosition={signatureUrl ? setSignaturePos : undefined}
           onClose={() => setShowApproveModal(false)}
           onConfirm={handleFinalApprove}
         />

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import ApproversSection from "./ApproversSection";
-import { getPlaces, getResponsiblePerson } from "../../../api/eventService";
+import { getPlaces, getResponsiblePerson } from "../../../shared/api/eventService";
 import { Calendar, Clock, MapPin, AlignLeft, FileText, Send, Loader2, AlertCircle } from "lucide-react";
 
 function EventForm({ values, setValues, setFile, roleMap, onSubmit }) {
@@ -98,7 +98,7 @@ function EventForm({ values, setValues, setFile, roleMap, onSubmit }) {
             <FileText size={20} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white leading-none">Draft Request</h2>
+            <h2 className="text-xl font-bold text-white leading-none">Letter Request</h2>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">create you event approval</p>
           </div>
         </div>

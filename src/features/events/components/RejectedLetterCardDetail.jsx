@@ -1,7 +1,7 @@
 import React from "react";
-import PdfViewer from "../../../components/pdf/PdfViewer";
-import { buildServerFileUrl } from "../../../api/fileUrl";
-import { 
+import PdfViewer from "../../../shared/ui/PdfViewer";
+import { buildServerFileUrl } from "../../../shared/api/fileUrl";
+import {
   Calendar, Clock, MapPin, User, AlertCircle, 
   History, FileText, ExternalLink, XCircle, ShieldAlert 
 } from "lucide-react";

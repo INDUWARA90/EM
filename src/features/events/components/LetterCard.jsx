@@ -1,7 +1,7 @@
 import React from "react";
-import PdfViewer from "../../../components/pdf/PdfViewer";
-import { buildServerFileUrl } from "../../../api/fileUrl";
-import { 
+import PdfViewer from "../../../shared/ui/PdfViewer";
+import { buildServerFileUrl } from "../../../shared/api/fileUrl";
+import {
   Calendar, Clock, MapPin, User, ShieldAlert, 
   History, FileText, ExternalLink, ChevronRight,
   Info, ArrowRight
@@ -11,6 +11,19 @@ const LetterCard = ({ letter }) => {
   if (!letter) return null;
 
   const pdfUrl = buildServerFileUrl(letter.pdfPath);
+  const conflictSource = letter.bookingConflict || letter.conflictDetails || letter;
+  const conflicts = Array.isArray(conflictSource?.conflicts)
+    ? conflictSource.conflicts
+    : [];
+  const hasBookingConflict =
+    Boolean(conflictSource?.conflict) ||
+    conflicts.length > 0 ||
+    letter.status === "PENDING_BOOKING" ||
+    letter.globalStatus === "PENDING_BOOKING";
+  const conflictMessage =
+    conflictSource?.message ||
+    letter.conflictMessage ||
+    "Place is already booked for this date/time.";
 
   // Helper to format time strings (20:36:00 -> 20:36)
   const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : "--:--";
@@ -54,6 +67,38 @@ const LetterCard = ({ letter }) => {
                 {letter.globalStatus}
               </span>
             </div>
+
+            {hasBookingConflict && (
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <div className="flex items-start gap-3">
+                  <ShieldAlert size={18} className="mt-0.5 shrink-0 text-amber-400" />
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest text-amber-300">
+                      Booking Conflict
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-amber-100/90">
+                      {conflictMessage}
+                    </p>
+                  </div>
+                </div>
+
+                {conflicts.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {conflicts.map((conflict) => (
+                      <div
+                        key={`${conflict.calendarEventId || conflict.letterId}-${conflict.eventDate}-${conflict.eventTime}`}
+                        className="rounded-xl border border-amber-400/20 bg-slate-950/40 p-3 text-xs text-slate-200"
+                      >
+                        <p className="font-bold">{conflict.title || "Existing booking"}</p>
+                        <p className="mt-1 text-slate-400">
+                          {conflict.eventDate} {formatTime(conflict.eventTime)} - {formatTime(conflict.endTime || conflict.eventEndTime)} at {conflict.placeName || conflict.eventPlace || "same place"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <h2 className="text-4xl font-black tracking-tight leading-tight">
               {letter.title}
@@ -125,9 +170,9 @@ const LetterCard = ({ letter }) => {
                     <p className="text-sm font-bold text-slate-100">{letter.currentApprover?.name || "Permission permitted"}</p>
                   </div>
                 </div>
-                <div className="text-right">
+                {/* <div className="text-right">
                   <span className="text-[10px] font-black text-cyan-500 bg-cyan-500/10 px-2 py-1 rounded uppercase">Pending</span>
-                </div>
+                </div> */}
               </div>
 
               {/* NEXT */}

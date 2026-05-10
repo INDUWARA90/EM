@@ -1,6 +1,6 @@
 import React from "react";
-import PdfViewer from "../../../components/pdf/PdfViewer";
-import { buildServerFileUrl } from "../../../api/fileUrl";
+import PdfViewer from "../../../shared/ui/PdfViewer";
+import { buildServerFileUrl } from "../../../shared/api/fileUrl";
 import { 
   Calendar, Clock, MapPin, User, CheckCircle2, 
   History, FileText, ExternalLink, ShieldCheck, 
